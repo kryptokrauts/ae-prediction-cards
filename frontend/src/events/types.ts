@@ -1,6 +1,7 @@
 export interface PredictionEvent {
   id?: string;
-  currency: string;
-  targetValue: number;
-  targetDate: string;
+  asset: string;
+  targetPrice: number;
+  startDate: string;
+  endDate: string;
 }

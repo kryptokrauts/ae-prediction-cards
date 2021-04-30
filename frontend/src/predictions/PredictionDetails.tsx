@@ -33,7 +33,7 @@ export const PredictionDetails: React.FC<Props> = () => (
         </CardFooter>
       </Card>
       <Box margin={[0, 0, 0, 'xlarge']}>
-        <Input light label="enter your daily rent price" number autoFocus centerLabel />
+        <Input light label="enter your daily rent price" type="number" autoFocus centerLabel />
         <Button margin={['large', 0, 0, 0]} primary>rent the card</Button>
       </Box>
     </Box>

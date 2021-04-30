@@ -12,6 +12,7 @@ interface BoxProps {
   center?: boolean;
   wrap?: boolean;
   align?: string;
+  justify?: "space-between";
 };
 
 const BoxWrapper = styled.div<BoxProps>`
@@ -28,6 +29,7 @@ const BoxWrapper = styled.div<BoxProps>`
   ${props => props.height && `height: ${props.height}`};
   ${props => props.width && `width: ${props.width}`};
   ${props => props.align && `align-items: ${props.align}`};
+  ${props => props.justify && `justify-content: ${props.justify}`};
 `;
 
 export const Box: React.FC<BoxProps> = ({ children, ...props }) => (

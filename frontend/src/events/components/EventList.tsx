@@ -25,9 +25,9 @@ export const EventList = ({ onEventClick, events }: Props) => (
   <StyledEventList>
     {events.map((evt) => (
       <Card key={evt.id} onClick={() => onEventClick(evt)}>
-        <BasicText>Price of <strong>{evt.currency}</strong></BasicText>
-        <BasicText>higher or lower than <strong>{evt.targetValue}</strong></BasicText>
-        <BasicText>by <strong>{evt.targetDate}</strong></BasicText>
+        <BasicText>Price of <strong>{evt.asset}</strong></BasicText>
+        <BasicText>higher or lower than <strong>{evt.targetPrice}</strong></BasicText>
+        <BasicText>by <strong>{evt.endDate}</strong></BasicText>
         <CardFooter>
           <Box row={false}>
             <Caption>current pot size</Caption>

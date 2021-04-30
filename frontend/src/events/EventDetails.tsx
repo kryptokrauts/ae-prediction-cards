@@ -10,9 +10,10 @@ export const EventDetails = () => {
   const history = useHistory();
   const { eventId } = useParams<{ eventId: string }>();
   const event: PredictionEvent = {
-    currency: 'AE',
-    targetValue: 5,
-    targetDate: '2020-07-01'
+    asset: 'AE',
+    targetPrice: 5,
+    startDate: '2020-06-1',
+    endDate: '2020-07-01'
   };
   const predictions: Array<Prediction> = [{
     id: '1',

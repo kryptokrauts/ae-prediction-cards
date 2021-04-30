@@ -11,15 +11,17 @@ export const EventDashboard = () => {
 
   const events: Array<PredictionEvent> = [{
     id: '1',
-    currency: 'AE',
-    targetValue: 5,
-    targetDate: '2020-07-01'
+    asset: 'AE',
+    targetPrice: 5,
+    startDate: '2020-06-1',
+    endDate: '2020-07-01'
   },
   {
     id: '2',
-    currency: 'BTC',
-    targetValue: 70000,
-    targetDate: '2020-08-01'
+    asset: 'BTC',
+    targetPrice: 70000,
+    startDate: '2020-06-1',
+    endDate: '2020-08-01'
   }]
 
   return (

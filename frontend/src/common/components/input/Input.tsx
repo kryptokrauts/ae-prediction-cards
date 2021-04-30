@@ -5,9 +5,15 @@ import { SmallText, textColorMixing } from "../text/Text";
 interface Props {
   label: string;
   light?: boolean;
-  number?: boolean;
+  type?: 'date' | 'number' | 'text';
+  data?: boolean;
   autoFocus?: boolean;
   centerLabel?: boolean;
+  min?: string;
+  onChange?: (date: any) => void;
+  name?: string;
+  max?: string;
+  value?: string;
 }
 
 const StyledLabel = styled.label<Partial<Props>>`
@@ -28,9 +34,9 @@ const StyledInput = styled.input<Partial<Props>>`
   ${textColorMixing}
 `;
 
-export const Input: React.FC<Props> = ({ label, light, number, autoFocus, centerLabel }) => (
+export const Input: React.FC<Props> = ({ label, light, type, autoFocus, centerLabel, min, max, name, value, onChange }) => (
   <StyledLabel centerLabel={centerLabel}>
     <SmallText light={light}>{label}</SmallText>
-    <StyledInput light={light} type={number ? 'number' : 'text'} autoFocus={autoFocus} />
+    <StyledInput light={light} type={type || 'text'} autoFocus={autoFocus} min={min} max={max} value={value} onChange={onChange} name={name} />
   </StyledLabel>
 )
