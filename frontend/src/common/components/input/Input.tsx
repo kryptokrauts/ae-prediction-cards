@@ -7,12 +7,14 @@ interface Props {
   light?: boolean;
   number?: boolean;
   autoFocus?: boolean;
+  centerLabel?: boolean;
 }
 
-const StyledLabel = styled.label`
+const StyledLabel = styled.label<Partial<Props>>`
   display: flex;
   flex-direction: column;
-  text-align: center;
+  text-align: ${props => props.centerLabel ? 'center' : 'initial'};
+  margin: ${props => props.theme.margin.medium} 0 ${props => props.theme.margin.medium} 0;
 `;
 
 const StyledInput = styled.input<Partial<Props>>`
@@ -22,13 +24,13 @@ const StyledInput = styled.input<Partial<Props>>`
   border-bottom: 2px solid rgba( 255, 255, 255, 0.9);
   outline: none;
   padding: ${props => `${props.theme.padding.small} ${props.theme.padding.large}`};
-  margin: ${props => props.theme.margin.large} 0 0 0;
+  margin: ${props => props.theme.margin.medium} 0 0 0;
   ${textColorMixing}
 `;
 
-export const Input: React.FC<Props> = ({ label, light, number, autoFocus }) => (
-  <StyledLabel>
-    <SmallText light={light} >{label}</SmallText>
+export const Input: React.FC<Props> = ({ label, light, number, autoFocus, centerLabel }) => (
+  <StyledLabel centerLabel={centerLabel}>
+    <SmallText light={light}>{label}</SmallText>
     <StyledInput light={light} type={number ? 'number' : 'text'} autoFocus={autoFocus} />
   </StyledLabel>
 )

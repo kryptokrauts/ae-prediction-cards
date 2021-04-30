@@ -19,6 +19,24 @@ const StyledModal = styled(Box).attrs({
   max-height: calc(100% - 100px);
   border-radius: ${props => props.theme.borderRadius};
   ${glassMixin};
+  animation: pop-in 0.2s;
+
+  @keyframes pop-in {
+    0% { opacity: 0; transform: scale(0.5); }
+    100% { opacity: 1; transform: scale(1); }
+  }
+`;
+
+const StyledFooter = styled(Box).attrs({
+  row: true
+})`
+  margin-top: ${props => props.theme.margin.large};
+  justify-content: flex-end;
+  margin-right: -${props => props.theme.margin.medium};
+  
+  & > * {
+    margin-right: ${props => props.theme.margin.medium};
+  }
 `;
 
 const Close = styled.div`
@@ -56,3 +74,9 @@ export const Modal: React.FC<Props> = ({ children, onClose }) => {
     wrapper
   );
 }
+
+export const ModalFooter: React.FC = ({ children }) => (
+  <StyledFooter>
+    {children}
+  </StyledFooter>
+);
