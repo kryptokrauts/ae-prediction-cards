@@ -1,20 +1,29 @@
 import { Node, RpcAepp } from '@aeternity/aepp-sdk/es';
 import BrowserWindowMessageConnection from '@aeternity/aepp-sdk/es/utils/aepp-wallet-communication/connection/browser-window-message';
 import WalletDetector from '@aeternity/aepp-sdk/es/utils/aepp-wallet-communication/wallet-detector';
+import { Dispatch } from 'react';
+import { Action } from 'redux';
+import { walletConnected, walletConnecting, walletDisconnected, walletUpdate } from './walletState';
 
 export class WalletClient {
   private client;
   private detector;
-  private accounts;
 
-  async connect() {
-    await this.init();
-    await this.scanForWallets() // Start looking for new wallets
-    this.accounts = await this.client.subscribeAddress('subscribe', 'connected');
-    console.log(this.accounts);
+  private dispatcher;
+
+  constructor(dispatcher: Dispatch<Action>) {
+    this.dispatcher = dispatcher;
   }
 
-  async getActiveAccount() {
+  async connect() {
+    this.dispatcher(walletConnecting());
+    await this.init();
+    await this.scanForWallets() // Start looking for new wallets
+    await this.client.subscribeAddress('subscribe', 'connected');
+    this.dispatcher(walletConnected(await this.getAccountInfo()))
+  }
+
+  private async getAccountInfo() {
     const account = await this.client.address();
     const balance = await this.client.balance(account);
     return {
@@ -22,6 +31,7 @@ export class WalletClient {
       balance
     }
   }
+
   private async init() {
 
     // Open iframe with Wallet if run in top window
@@ -35,11 +45,11 @@ export class WalletClient {
       onNetworkChange(params) {
         if (this.getNetworkId() !== params.networkId) alert(`Connected network ${this.getNetworkId()} is not supported with wallet network ${params.networkId}`)
       },
-      onAddressChange: async (addresses) => {
-        console.log(addresses);
+      onAddressChange: async () => {
+        walletUpdate(await this.getAccountInfo());
       },
-      onDisconnect(msg) {
-        console.log(msg)
+      onDisconnect() {
+        walletDisconnected();
       }
     })
   }
@@ -50,7 +60,7 @@ export class WalletClient {
       const handleWallets = async ({ wallets, newWallet }) => {
         newWallet = newWallet || Object.values(wallets)[0]
         // ask if you want to connect
-        if (window.confirm(`Do you want to connect to wallet ${newWallet.name}`)) {
+        if (newWallet.name === 'Superhero') {
           // Stop scanning wallets
           this.detector.stopScan()
           // Connect to wallet

@@ -1,11 +1,14 @@
-import { useState } from "react";
+import { useSelector } from "react-redux";
+import { useHistory } from "react-router";
 import styled from "styled-components";
 import { useWallet } from "../common/aeternity/WalletProvider";
 import { Button } from "../common/components/Button/Button";
 import { Logo } from "../common/components/logo/Logo";
+import { Spinner } from "../common/components/spinner/Spinner";
 import { MidHeading } from "../common/components/text/Heading";
-import { Text } from "../common/components/text/Text";
+import { BasicText } from "../common/components/text/Text";
 import { glassMixin } from "../common/mixins/glass";
+import { AppState } from "../state";
 
 const StyledWrapper = styled.div`
   display: flex;
@@ -19,30 +22,35 @@ const StyledWrapper = styled.div`
 const NavActions = styled.div`
   display: flex;
   margin-left: auto;
+  align-items: center;
 `;
 
 export const Navigation = () => {
+  const history = useHistory();
   const wallet = useWallet();
-  const [activeAccount, setActiveAccount] = useState<{ account?: string, balance?: string }>({});
+  const { account, balance, connecting } = useSelector<AppState, any>(state => state.wallet);
 
   const handleConnect = async () => {
     await wallet.connect();
-    const acc = await wallet.getActiveAccount();
-    console.log(acc);
-    setActiveAccount(acc);
   };
 
   return (
     <StyledWrapper>
       <Logo />
-      <MidHeading>PredictionCards</MidHeading>
+      <MidHeading onClick={() => history.push('/')}>PredictionCards</MidHeading>
       <NavActions>
-        {activeAccount?.account ? (
-          <Text>{activeAccount.account}</Text>
+        {account ? (
+          <>
+            <BasicText>{account}</BasicText>
+            <Button margin={[0, 0, 0, "small"]}>New Event</Button>
+          </>
+        ) : (connecting ? (
+          <Spinner size="small" />
         ) : (
           <Button onClick={handleConnect}>Connect Wallet</Button>
+        )
         )}
       </NavActions>
-    </StyledWrapper>
+    </StyledWrapper >
   )
 }

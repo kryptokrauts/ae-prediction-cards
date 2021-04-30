@@ -1,10 +1,11 @@
 import styled from "styled-components";
 import { MarginSize, PaddingSize } from "../../../theme.types";
+import { marginMixin } from "../../mixins/spacing";
 
 interface BoxProps {
   gap?: number;
-  margin?: Array<MarginSize>;
-  padding?: Array<PaddingSize>;
+  margin?: Array<MarginSize | number>;
+  padding?: Array<PaddingSize | number>;
   row?: boolean;
   height?: string;
   width?: string;
@@ -13,31 +14,13 @@ interface BoxProps {
   align?: string;
 };
 
-const applyGap = ({ gap }: Pick<BoxProps, 'gap'>): string | undefined => {
-  if (gap) {
-    return `
-      margin-top: -${gap}px;
-      margin-left: -${gap}px;
-
-      & > * {
-        margin-top: ${gap}px;
-        margin-left: ${gap}px;
-      }
-    `;
-  }
-};
-
 const BoxWrapper = styled.div<BoxProps>`
   display: flex;
-  ${props => props.margin && `margin: ${props.margin.map(m => props.theme.margin[m] || `${m}px`).join(' ')}`};
+  ${marginMixin}
   ${props => props.padding && `padding: ${props.padding.map(p => props.theme.padding[p] || `${p}px`).join(' ')}`};
 
   ${props => props.height && `height: ${props.height}`};
   ${props => props.width && `width: ${props.width}`};
-`;
-
-const InnerBox = styled.div<BoxProps>`
-  display: flex;
 
   ${props => props.center && `align-items: center`};
   ${props => props.row ? `flex-direction: row` : `flex-direction: column`};
@@ -45,14 +28,10 @@ const InnerBox = styled.div<BoxProps>`
   ${props => props.height && `height: ${props.height}`};
   ${props => props.width && `width: ${props.width}`};
   ${props => props.align && `align-items: ${props.align}`};
-
-  ${applyGap}
 `;
 
 export const Box: React.FC<BoxProps> = ({ children, row = true, margin, ...props }) => (
-  <BoxWrapper margin={margin}>
-    <InnerBox gap={props.gap} row={row} {...props}>
-      {children}
-    </InnerBox>
+  <BoxWrapper margin={margin} {...props}>
+    {children}
   </BoxWrapper>
 );
