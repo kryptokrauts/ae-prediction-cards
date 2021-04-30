@@ -2,6 +2,7 @@ import React from "react";
 import { Route, Switch } from "react-router";
 import styled from "styled-components";
 import { WalletProvider } from "./common/aeternity/WalletProvider";
+import { PredictionCardsProvider } from "./common/api/PredictionCardsApiProvider";
 import { EventDashboard } from "./events/EventDashboard";
 import { EventDetails } from "./events/EventDetails";
 import { Navigation } from "./navigation/Navigation";
@@ -18,14 +19,16 @@ const ContentWrapper = styled.div`
 export const App = () => {
   return (
     <WalletProvider>
-      <Navigation />
-      <ContentWrapper>
-        <Switch>
-          <Route path="/" exact component={EventDashboard} />
-          <Route path="/:eventId" exact component={EventDetails} />
-          <Route path="/:eventId/:prediction" exact component={PredictionDetails} />
-        </Switch>
-      </ContentWrapper>
+      <PredictionCardsProvider>
+        <Navigation />
+        <ContentWrapper>
+          <Switch>
+            <Route path="/" exact component={EventDashboard} />
+            <Route path="/:eventId" exact component={EventDetails} />
+            <Route path="/:eventId/:prediction" exact component={PredictionDetails} />
+          </Switch>
+        </ContentWrapper>
+      </PredictionCardsProvider>
     </WalletProvider>
   )
 }

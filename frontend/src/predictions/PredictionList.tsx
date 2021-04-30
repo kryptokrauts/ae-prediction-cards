@@ -25,7 +25,7 @@ const StyledPredictionList = styled.div`
 export const PredictionList: React.FC<Props> = ({ predictions, onPredictionClick }) => (
   <StyledPredictionList>
     {predictions.map(prediction => (
-      <Card vertical onClick={() => onPredictionClick(prediction)}>
+      <Card key={prediction.id} vertical onClick={() => onPredictionClick(prediction)}>
         <Box center>
           <SmallHeading>{prediction.name}</SmallHeading>
         </Box>

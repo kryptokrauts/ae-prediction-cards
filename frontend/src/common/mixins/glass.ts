@@ -19,7 +19,6 @@ export const glassMixin = () => {
 export const glassHoverMixin = () => {
   return css`
     &:hover {
-      
     }
   `;
 };

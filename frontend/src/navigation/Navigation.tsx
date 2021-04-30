@@ -1,11 +1,13 @@
+import { useState } from "react";
 import { useSelector } from "react-redux";
 import { useHistory } from "react-router";
 import styled from "styled-components";
 import { useWallet } from "../common/aeternity/WalletProvider";
 import { Button } from "../common/components/Button/Button";
+import { Modal } from "../common/components/dialog/dialog";
 import { Logo } from "../common/components/logo/Logo";
 import { Spinner } from "../common/components/spinner/Spinner";
-import { MidHeading } from "../common/components/text/Heading";
+import { MidHeading, SmallHeading } from "../common/components/text/Heading";
 import { BasicText } from "../common/components/text/Text";
 import { glassMixin } from "../common/mixins/glass";
 import { AppState } from "../state";
@@ -28,6 +30,7 @@ const NavActions = styled.div`
 export const Navigation = () => {
   const history = useHistory();
   const wallet = useWallet();
+  const [showModal, setShowModal] = useState(false);
   const { account, balance, connecting } = useSelector<AppState, any>(state => state.wallet);
 
   const handleConnect = async () => {
@@ -42,7 +45,7 @@ export const Navigation = () => {
         {account ? (
           <>
             <BasicText>{account}</BasicText>
-            <Button margin={[0, 0, 0, "small"]}>New Event</Button>
+            <Button margin={[0, 0, 0, "small"]} onClick={() => setShowModal(true)}>New Event</Button>
           </>
         ) : (connecting ? (
           <Spinner size="small" />
@@ -51,6 +54,11 @@ export const Navigation = () => {
         )
         )}
       </NavActions>
+      {showModal && (
+        <Modal onClose={() => setShowModal(false)}>
+          <SmallHeading>Hello World</SmallHeading>
+        </Modal>
+      )}
     </StyledWrapper >
   )
 }

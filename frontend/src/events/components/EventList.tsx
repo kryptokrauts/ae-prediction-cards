@@ -24,7 +24,7 @@ const StyledEventList = styled.div`
 export const EventList = ({ onEventClick, events }: Props) => (
   <StyledEventList>
     {events.map((evt) => (
-      <Card onClick={() => onEventClick(evt)}>
+      <Card key={evt.id} onClick={() => onEventClick(evt)}>
         <BasicText>Price of <strong>{evt.currency}</strong></BasicText>
         <BasicText>higher or lower than <strong>{evt.targetValue}</strong></BasicText>
         <BasicText>by <strong>{evt.targetDate}</strong></BasicText>
