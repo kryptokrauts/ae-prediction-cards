@@ -1,7 +1,7 @@
-@compiler >= 4.2
+@compiler >= 4.1
 
 include "Option.aes"
-include "String.aes"
+
 
 // https://github.com/aeternity/aepp-sophia-examples/blob/master/libraries/DateTime/contracts/DateTime.aes
 
@@ -18,11 +18,10 @@ payable contract PredictionCards =
     , nft_higher_id: int
     , last_rent_timestamp: map(int, int) // nft_id, timestamp
     , nft_last_rent_aettos_per_millisecond: map(int, int) // nft_id, last_rent_amount per millisecond set by renter
-    , nft_hodl_time: map(int, hodl_time) // owner, hodl duration per owner (needed to calculate payout)
+    , nft_hodl_time: map(address, int) // owner, hodl duration per owner (needed to calculate payout)
     , collected_nft_balance: map(int, int) // map of nft and their collected rent amount
     , oracle_query: option(oracle_query(string, string)) // the query data used to determine the winner
-    , winning_nft_id: option(int) // the nft_id of the correct option
-    , renter_claimed: map(address, bool)} // tracks if a renter has claimed
+    , winning_nft: option(int)} // the nft_id of the correct option
 
   //record oracle_query_data =
   //  { query: oracle_query(string, string)
@@ -41,13 +40,10 @@ payable contract PredictionCards =
 
   type nft_balance = map(int, int) // nft_id - balance TODO check if type support is still available with v4.3.0
 
-  type hodl_time = map(address, int)
-
   datatype prediction_state =
       CREATED |
       ACTIVE |
-      CLOSED |
-      ORACLE_PROCESSED    // winner is determined
+      CLOSED
 
   /**
     init method
@@ -111,10 +107,10 @@ payable contract PredictionCards =
               // compute amount of aettos for complete hodl time
             put(state{renter_nft_balance = state.renter_nft_balance{[last_renter]={[nft_id]=last_renter_balance-rent_amount_to_collect}}})
             let last_renter_collected_balance = Map.lookup_default(nft_id, prediction.collected_nft_balance,0)
-            let last_renter_hodl_time = Map.lookup_default(last_renter, Map.lookup_default(nft_id,prediction.nft_hodl_time,{}),0)        
+            let last_renter_hodl_time = Map.lookup_default(last_renter,prediction.nft_hodl_time,0)         
             prediction{
               collected_nft_balance = prediction.collected_nft_balance{[nft_id] = last_renter_collected_balance + rent_amount_to_collect},
-              nft_hodl_time = prediction.nft_hodl_time{[nft_id]={[last_renter] = last_renter_hodl_time+rent_period}}}                      
+              nft_hodl_time = prediction.nft_hodl_time{[last_renter] = last_renter_hodl_time+rent_period}}                      
           None => prediction
       let updated_prediction_final = updated_prediction_tmp{
         last_rent_timestamp = updated_prediction_tmp.last_rent_timestamp{[nft_id]=Chain.timestamp}, 
@@ -148,8 +144,7 @@ payable contract PredictionCards =
       nft_hodl_time = {},
       collected_nft_balance = {},
       oracle_query = None,
-      winning_nft_id = None,
-      renter_claimed = {} }
+      winning_nft = None }
     //todo: mint NFT (event) and set contract as owner
     put(state{nft_meta = state.nft_meta{[nft_lower_equal_id]=ipfs_hash_lower_equal, [nft_higher_id]=ipfs_hash_higher}})
     put(state{next_prediction_id = state.next_prediction_id+1})
@@ -217,24 +212,7 @@ payable contract PredictionCards =
         let relative_query_ttl = 1000
         let oracle_query = Oracle.query(state.oracle, prediction.asset, query_fee, RelativeTTL(relative_query_ttl), RelativeTTL(1000))
         put(state{predictions = state.predictions{[prediction.id]=prediction{oracle_query=Some(oracle_query)}}})
-
-  /* process_oracle_response */
-  // if Some
-            // determine winning outcome of prediction (compare oracle response value to target value) // one of outcome (LOWER, HIGHER)
-            // iterate over nft_ids of prediction
-                // if state.nft_renter.get(nft_id) => None // no one has rented this nft
-                    // continue
-                // else
-                    // update renter_nft_balance of current owner in nft_renter -= (duration until end_timestamp of prediction * nft_last_amount_per_interval)
-                    // update collected_nft_balances += (duration until end_timestamp of prediction * nft_last_amount_per_interval)
-                    // update nft_hodl_time of current owner with duration = end_timestamp - nft_last_update
-                    // update nft_last_rent_timestamp (set end_timestamp) -> do we need this???
-                    // if nft_meta.get(nft_id).outcome == winning
-                        // set prediction.winning_nft
-                        // sum up prediction.collected_nft_balance
-                        // distribute summed up balance based on nft_hodl_time -> via claim
-                    // distribute nft to token owner based on nft_hodl_time (omitting transfer_from in that case)
-
+/*TODO
   stateful entrypoint process_oracle_response(prediction_id : int) =
     require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")
     let prediction = state.predictions[prediction_id]
@@ -242,82 +220,33 @@ payable contract PredictionCards =
       None => abort("ERROR_ORACLE_QUERY_MISSING")
       Some(oracle_query) =>
         switch(Oracle.get_answer(state.oracle, oracle_query)) 
-          None => abort("ERROR_ORACLE_NOT_ANSWERED_OR_EXPIRED")            
-          Some(oracle_response) =>
+          None => abort("ERROR_ORACLE_NOT_ANSWERED_OR_EXPIRED")  
+          Some(oracle_result) => 
             // determine winning nft
-            switch(String.to_int(oracle_response))
-              None => abort("ERROR_ORACLE_RESPONSE_INVALID")
-              Some(current_price) =>
-                let winning_nft_id =
-                  switch(prediction.target_price > current_price)
-                    true => prediction.nft_higher_id
-                    false => prediction.nft_lower_equal_id
-                // process last prediction of lower and higher nfts
-                let updated_prediction = process_nft(prediction.nft_higher_id, process_nft(prediction.nft_lower_equal_id, prediction)){winning_nft_id=Some(winning_nft_id)}
-                put(state{predictions = state.predictions{[prediction_id]=updated_prediction}})
-
-  stateful function process_nft(nft_id : int, prediction : prediction) : prediction = 
-    switch(Map.lookup(nft_id,state.nft_renter))
-      None => prediction
-      Some(last_renter) =>
-        let last_renter_balance = state.renter_nft_balance[last_renter][nft_id]
-        let last_rent_timestamp = prediction.last_rent_timestamp[nft_id]
-        let last_rent_aettos = prediction.nft_last_rent_aettos_per_millisecond[nft_id]
-        let rent_period = prediction.end_timestamp - last_rent_timestamp        // difference in milliseconds between end_timestamp and last rent
-        let max_hodl_time = last_renter_balance / last_rent_aettos     // max duration in milliseconds which current renter can hodl the rent
-        let rent_amount_to_collect =
-          switch((max_hodl_time - rent_period) >= 0)
-            true => rent_period * last_rent_aettos
-            false => last_renter_balance
-          // compute amount of aettos for complete hodl time            
-        let collected_balance = Map.lookup_default(nft_id, prediction.collected_nft_balance,0)
-        let last_renter_hodl_time = Map.lookup_default(last_renter, Map.lookup_default(nft_id,prediction.nft_hodl_time,{}),0)  
-        let updated_prediction = prediction{
-          collected_nft_balance = prediction.collected_nft_balance{[nft_id] = collected_balance + rent_amount_to_collect },
-          nft_hodl_time = prediction.nft_hodl_time{[nft_id]={[last_renter] = last_renter_hodl_time+rent_period}},
-          last_rent_timestamp = prediction.last_rent_timestamp{[nft_id]=prediction.end_timestamp}} 
-        put(state{renter_nft_balance = state.renter_nft_balance{[last_renter]={[nft_id]=last_renter_balance-rent_amount_to_collect}}})
-        updated_prediction
-
-  // claim returns renters_balance as well as it's part of the winning nft
-  stateful entrypoint claim(prediction_id : int) =
-    require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")
-    let prediction = state.predictions[prediction_id]
-    require(get_prediction_state(prediction.id) == ORACLE_PROCESSED, "ERROR_PREDICTION_WINNER_NOT_DETERMINED")
-    switch(prediction.winning_nft_id)
-      None => abort("ERROR_INTERNAL")
-      Some(winning_nft_id) =>
-        require(Map.member(Call.caller,prediction.nft_hodl_time[winning_nft_id]),"ERROR_CALLER_HAS_NO_WINNINGS_TO_CLAIM")        
-        let claim_amount = (prediction.collected_nft_balance[prediction.nft_lower_equal_id] + prediction.collected_nft_balance[prediction.nft_higher_id]) 
-          / prediction.nft_hodl_time[winning_nft_id][Call.caller]
-        let current_renter_balance = state.renter_nft_balance[Call.caller][winning_nft_id]
-        put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]={[winning_nft_id]=current_renter_balance + claim_amount}}})
-        withdraw_from_nft(winning_nft_id, None)
-          
-
+            let winning_nft =
+              switch(prediction.target_price > Int.to_str(oracle_result))
+                true => prediction.nft_higher_id
+                false => prediction.nft_lower_equal_id
+    */        
+        // if Some
+            // determine winning outcome of prediction (compare oracle response value to target value) // one of outcome (LOWER, HIGHER)
+            // iterate over nft_ids of prediction
+                // if state.nft_renter.get(nft_id) => None // no one has rented this nft
+                    // continue
+                // else
+                    // update renter_nft_balance of current owner in nft_renter -= (duration until end_timestamp of prediction * nft_last_amount_per_interval)
+                    // update nft_balances += (duration until end_timestamp of prediction * nft_last_amount_per_interval)
+                    // update nft_hodl_time of current owner with duration = end_timestamp - nft_last_update
+                    // update nft_last_update (set end_timestamp)
+                    // if nft_meta.get(nft_id).outcome == winning
+                        // set prediction.winning_nft
+                        // sum up prediction.collected_nft_balance
+                        // distribute summed up balance based on nft_hodl_time
+                    // distribute nft to token owner based on nft_hodl_time (omitting transfer_from in that case)
+            
   /**
     entrypoints
   */
-
-  //read for frontend - get amount to claim(win + deposit) -> return as tuple
-  entrypoint get_win_deposit(nft_id : int, renter : address) : (int * int) =
-    require(Map.member(nft_id, state.nft_prediction), "ERROR_NFT_ID_INVALID")
-    let prediction = state.predictions[state.nft_prediction[nft_id]]
-    require(get_prediction_state(prediction.id) == ORACLE_PROCESSED, "ERROR_PREDICTION_WINNER_NOT_DETERMINED")
-    let balance = 
-      switch(Map.lookup(renter, state.renter_nft_balance))
-        None => 0
-        Some(nft_balance) => Map.lookup_default(nft_id,nft_balance, 0)
-    //make null safe for nft_hodl_time[nft_id]    
-    let renter_hodl_time = 
-      switch(Map.lookup(nft_id,prediction.nft_hodl_time))
-        None => 0
-        Some(nft_hodl_time) => Map.lookup_default(renter,nft_hodl_time, 0)
-    switch(renter_hodl_time > 0)
-      false => (0, balance)
-      true => (((prediction.collected_nft_balance[prediction.nft_lower_equal_id] + prediction.collected_nft_balance[prediction.nft_higher_id]) 
-          / prediction.nft_hodl_time[nft_id][renter]), balance)
-      
 
    // if None
           // check if ttl of query is still valid
@@ -341,9 +270,7 @@ payable contract PredictionCards =
     if(Chain.timestamp < prediction.start_timestamp)
       CREATED
     elif(Chain.timestamp > prediction.end_timestamp)
-      switch(Option.is_some(prediction.winning_nft_id))
-        true => ORACLE_PROCESSED
-        false => CLOSED
+      CLOSED
     else
       ACTIVE
 

@@ -2,10 +2,10 @@ import { createContext, useContext } from "react";
 import { useWallet } from "../aeternity/WalletProvider";
 import { PredictionCardsApi } from "./PredictionCards.api";
 
-const PredictionCardsContext = createContext<any>(undefined);
+const PredictionCardsContext = createContext<PredictionCardsApi | undefined>(undefined);
 
-export const usePredictionCardsApi = () => {
-  return useContext(PredictionCardsContext);
+export const usePredictionCardsApi = (): PredictionCardsApi => {
+  return useContext(PredictionCardsContext)!;
 };
 
 export const PredictionCardsProvider: React.FC = ({ children }) => {
