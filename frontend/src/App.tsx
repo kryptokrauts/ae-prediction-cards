@@ -5,6 +5,7 @@ import { WalletProvider } from "./common/aeternity/WalletProvider";
 import { EventDashboard } from "./events/EventDashboard";
 import { EventDetails } from "./events/EventDetails";
 import { Navigation } from "./navigation/Navigation";
+import { PredictionDetails } from "./predictions/PredictionDetails";
 
 const ContentWrapper = styled.div`
   display: flex;
@@ -22,6 +23,7 @@ export const App = () => {
         <Switch>
           <Route path="/" exact component={EventDashboard} />
           <Route path="/:eventId" exact component={EventDetails} />
+          <Route path="/:eventId/:prediction" exact component={PredictionDetails} />
         </Switch>
       </ContentWrapper>
     </WalletProvider>

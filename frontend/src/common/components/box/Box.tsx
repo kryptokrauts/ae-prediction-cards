@@ -30,8 +30,8 @@ const BoxWrapper = styled.div<BoxProps>`
   ${props => props.align && `align-items: ${props.align}`};
 `;
 
-export const Box: React.FC<BoxProps> = ({ children, row = true, margin, ...props }) => (
-  <BoxWrapper margin={margin} {...props}>
+export const Box: React.FC<BoxProps> = ({ children, ...props }) => (
+  <BoxWrapper {...props}>
     {children}
   </BoxWrapper>
 );

@@ -7,6 +7,7 @@ import { Prediction } from "./types";
 
 interface Props {
   predictions: Array<Prediction>;
+  onPredictionClick: (prediction: Prediction) => void;
 }
 
 const StyledPredictionList = styled.div`
@@ -21,10 +22,10 @@ const StyledPredictionList = styled.div`
   }
 `;
 
-export const PredictionList: React.FC<Props> = ({ predictions }) => (
+export const PredictionList: React.FC<Props> = ({ predictions, onPredictionClick }) => (
   <StyledPredictionList>
     {predictions.map(prediction => (
-      <Card vertical>
+      <Card vertical onClick={() => onPredictionClick(prediction)}>
         <Box center>
           <SmallHeading>{prediction.name}</SmallHeading>
         </Box>
