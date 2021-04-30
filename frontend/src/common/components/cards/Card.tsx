@@ -2,18 +2,19 @@ import styled from "styled-components";
 import { glassHoverMixin, glassMixin } from "../../mixins/glass";
 
 interface Props {
-  onClick: () => void;
+  onClick?: () => void;
+  vertical?: boolean;
 }
 
-const StyledCard = styled.div`
+const StyledCard = styled.div<Props>`
   display: flex;
   flex-direction: column;
 
   ${glassMixin}
   padding: ${props => props.theme.padding.large};
   border-radius: ${props => props.theme.borderRadius};
-  min-width: 380px;
-  min-height: 200px;
+  min-width: ${props => props.vertical ? 200 : 380}px;
+  min-height:  ${props => props.vertical ? 300 : 200}px;
 
   ${glassHoverMixin}
 `;
@@ -25,8 +26,8 @@ const StyledCardFooter = styled.div`
   width: 100%;
 `;
 
-export const Card: React.FC<Props> = ({ children, onClick }) => (
-  <StyledCard onClick={onClick}>
+export const Card: React.FC<Props> = ({ children, onClick, vertical }) => (
+  <StyledCard onClick={onClick} vertical={vertical}>
     {children}
   </StyledCard>
 );

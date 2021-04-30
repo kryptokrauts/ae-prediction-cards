@@ -16,7 +16,8 @@ export const Theme: DefaultTheme = {
     small: '4px',
     medium: '8px',
     large: '16px',
-    xlarge: '128px'
+    xlarge: '64px',
+    xxlarge: '128px'
   },
   borderRadius: '5px'
 };

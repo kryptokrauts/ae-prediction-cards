@@ -59,6 +59,8 @@ html, body {
 
 body {
   background-image: linear-gradient(110deg, #F2CD87, #E8A465, #9B656F);
+  background-repeat: no-repeat;
+  background-attachment: fixed;
 }
 
 * {

@@ -3,6 +3,7 @@ interface Margin {
   medium: string;
   large: string;
   xlarge: string;
+  xxlarge: string;
 }
 
 export type MarginSize = keyof Margin;
