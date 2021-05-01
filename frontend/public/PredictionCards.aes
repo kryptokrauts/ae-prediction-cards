@@ -77,7 +77,7 @@ payable contract PredictionCards =
            // the deposit balance for the caller needs to cover at least the min_rent_interval (default: 1 day)
   /// @param nft_id the NFT id of the outcome to predict
   /// @param amount the amount (ættos) to pay per millisecond
-  stateful entrypoint predict_nft : (int, int) => unit
+  stateful entrypoint rent_nft : (int, int) => unit
 
   /// @notice withdraw a specific amount or the total balance from a specific NFT
   /// @param nft_id the NFT id to withdraw from
@@ -151,3 +151,18 @@ payable contract PredictionCards =
 
   /// @notice get the configured rent interval (milliseconds)
   entrypoint get_rent_interval : () => int
+  
+  /// @notice get the amount (ættos) the calling renter has deposited to the given NFT id
+  /// @param the NFT id
+  /// @return the deposit in ættos
+  entrypoint get_nft_deposit : (int) => int
+
+  /// @notice get the time left until the current rent expires (assuming it won't be outbidded)
+  /// @param the NFT id
+  /// @return the expiration duration (milliseconds)
+  entrypoint get_rent_expiration : (int) => int
+
+  /// @notice get the collected rent of all nfts of this prediction
+  /// @param the prediction id
+  /// @return the collected rent in ættos
+  entrypoint get_pot_size : (int) => int
