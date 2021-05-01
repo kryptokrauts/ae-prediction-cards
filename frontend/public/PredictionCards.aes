@@ -1,10 +1,8 @@
-@compiler >= 4.1
+@compiler >= 4.2
 
-include "Option.aes"
-
-
-// https://github.com/aeternity/aepp-sophia-examples/blob/master/libraries/DateTime/contracts/DateTime.aes
-
+/// @title PredictionCards by kryptokrauts.com
+/// @author Michel Meier & Marco Walz
+/// @notice allows to predict future prices of certain assets by renting the NFT of a specific outcome
 payable contract PredictionCards =
 
   record prediction =
@@ -18,351 +16,138 @@ payable contract PredictionCards =
     , nft_higher_id: int
     , last_rent_timestamp: map(int, int) // nft_id, timestamp
     , nft_last_rent_aettos_per_millisecond: map(int, int) // nft_id, last_rent_amount per millisecond set by renter
-    , nft_hodl_time: map(address, int) // owner, hodl duration per owner (needed to calculate payout)
-    , collected_nft_balance: map(int, int) // map of nft and their collected rent amount
+    , nft_hodl_time: map(int, map(address, int)) // owner, hodl duration per owner (needed to calculate payout)
+    , collected_nft_balance: map(int, int) // map of nft_id and their collected rent amount
     , oracle_query: option(oracle_query(string, string)) // the query data used to determine the winner
-    , winning_nft: option(int)} // the nft_id of the correct option
-
-  //record oracle_query_data =
-  //  { query: oracle_query(string, string)
-  //  , query_ttl: int}
+    , winning_nft_id: option(int) // the nft_id of the correct option
+    , renter_claimed: map(address, bool)} // tracks if a renter has claimed
 
   record state =
     { oracle: oracle(string, string)
     , rent_interval: int // duration in milliseconds, provided AE needs to cover this interval when renting the prediction (default: 86400, 1 day)
     , predictions: map(int, prediction) // map of all predictions
-    , nft_meta: map(int, string) // map of nft ids and their corresponding ipfs_hash
-    , nft_prediction: map(int, int) // map of nft and their corresponding prediction
-    , nft_renter: map(int, address) // map of nft and their current renter (or owner after prediction is closed)
+    , nft_meta: map(int, string) // map of nft_id and their corresponding ipfs_hash - TODO => irrelevant now?!?!
+    , nft_prediction: map(int, int) // map of nft_id and their corresponding prediction
+    , nft_renter: map(int, address) // map of nft_id and their current renter (or owner after prediction is closed)
     , renter_nft_balance: map(address, nft_balance) // map with renter and their remaining funds per nft
     , next_prediction_id: int //next prediction id 
-    , next_nft_id: int } // next nft id
+    , next_nft_id: int } // next nft_id
 
-  type nft_balance = map(int, int) // nft_id - balance TODO check if type support is still available with v4.3.0
+  type nft_balance = map(int, int) // nft_id - balance
 
   datatype prediction_state =
       CREATED |
       ACTIVE |
-      CLOSED
+      CLOSED |
+      ORACLE_PROCESSED    // winner is determined
 
-  /**
-    init method
-   */ 
-  stateful entrypoint init(oracle: oracle(string, string), rent_interval : option(int)) =   
-    require(Oracle.check(oracle), "ERROR_DEPLOY_ORACLE") 
-    {  oracle = oracle,
-       rent_interval = Option.default(86400000, rent_interval),   //default rent interval to 1 day in ms
-       predictions = {},
-       nft_meta = {},
-       nft_prediction = {},
-       nft_renter = {},
-       renter_nft_balance = {},
-       next_prediction_id = 1,
-       next_nft_id = 1 }
+  datatype event =
+    Mint(address, int)                    // to_address and nft_id
+    | Transfer(address, address, int)     // from_address to_address nft_id 
 
-  /** 
-    stateful entrypoints
-  */ 
+  /// @param oracle the oracle to use for resolving predictions
+  /// @param min_rent_interval the optional min interval an outcome needs to be rent in milliseconds (default: 86400000 / 1 day)
+  /// @return the initial state object
+  stateful entrypoint init : (oracle(string, string), option(int)) => state
 
-    // check if prediction of nft is in state "ACTIVE"
-    // check conditions for predict
-    // if (!isFirstRenter)
-        // update renter_nft_balance of current owner in nft_owners -= (duration*nft_last_amount_per_interval)
-        // update collected_nft_balance += (duration*nft_last_amount_per_interval)
-        // update nft_hodl_time of current owner with duration = current_timestamp - nft_last_update
-    // update nft_last_update
-    // update nft_last_amount_per_interval = function params
-    // update nft_owners
-  stateful entrypoint predict_nft(nft_id: int, aettos_per_millisecond: int)  = // nft_id, amount_per_millisecond 
-    if(Map.member(nft_id, state.nft_prediction)) 
-      require(Map.member(Call.caller, state.renter_nft_balance) && Map.member(nft_id, state.renter_nft_balance[Call.caller]),"ERROR_NO_BALANCE")     
-      let prediction = state.predictions[state.nft_prediction[nft_id]]
-      require(ACTIVE == get_prediction_state(prediction.id),"ERROR_PREDICTION_IS_NOT_ACTIVE")
-      // get last rent per ms and check that the given one is within the boundaries
-      let last_rent_aettos_per_millisecond = Map.lookup_default(nft_id,prediction.nft_last_rent_aettos_per_millisecond,0)
-      // check lower limit of rent per ms
-      require(last_rent_aettos_per_millisecond < aettos_per_millisecond, "ERROR_RENT_TOO_SMALL")
-      // check upper limit of rent per ms
-      require(aettos_per_millisecond =< last_rent_aettos_per_millisecond + prediction.max_increase_rent_amount_aettos, "ERROR_RENT_TOO_BIG")
-      // compute amount actually needed to be on renters_nft_balance
-      let time_left_milliseconds = prediction.end_timestamp - Chain.timestamp
-      let required_amount_aettos =
-        switch((state.rent_interval - time_left_milliseconds) >= 0)
-          true => time_left_milliseconds * aettos_per_millisecond
-          false => state.rent_interval * aettos_per_millisecond
-      require(state.renter_nft_balance[Call.caller][nft_id] >= required_amount_aettos,String.concat(String.concat(String.concat("ERROR_INSUFFICIENT_BALANCE ",Int.to_str(required_amount_aettos))," "),Int.to_str(time_left_milliseconds)))
-      // update prediction 
-      let updated_prediction_tmp =
-        switch(Map.lookup(nft_id, state.nft_renter))
-          Some(last_renter) =>            
-            let last_renter_balance = state.renter_nft_balance[last_renter][nft_id]
-            let last_rent_timestamp = prediction.last_rent_timestamp[nft_id]
-            let last_rent_aettos = prediction.nft_last_rent_aettos_per_millisecond[nft_id]
-            let rent_period = Chain.timestamp - last_rent_timestamp        // difference in milliseconds between now and last rent
-            let max_hodl_time = last_renter_balance / last_rent_aettos     // max duration in milliseconds which current renter can hodl the rent
-            let rent_amount_to_collect =
-              switch((max_hodl_time - rent_period) >= 0)
-                true => rent_period * last_rent_aettos
-                false => last_renter_balance
-              // compute amount of aettos for complete hodl time
-            put(state{renter_nft_balance = state.renter_nft_balance{[last_renter]={[nft_id]=last_renter_balance-rent_amount_to_collect}}})
-            let last_renter_collected_balance = Map.lookup_default(nft_id, prediction.collected_nft_balance,0)
-            let last_renter_hodl_time = Map.lookup_default(last_renter,prediction.nft_hodl_time,0)         
-            prediction{
-              collected_nft_balance = prediction.collected_nft_balance{[nft_id] = last_renter_collected_balance + rent_amount_to_collect},
-              nft_hodl_time = prediction.nft_hodl_time{[last_renter] = last_renter_hodl_time+rent_period}}                      
-          None => prediction
-      let updated_prediction_final = updated_prediction_tmp{
-        last_rent_timestamp = updated_prediction_tmp.last_rent_timestamp{[nft_id]=Chain.timestamp}, 
-        nft_last_rent_aettos_per_millisecond = updated_prediction_tmp.nft_last_rent_aettos_per_millisecond{[nft_id]=aettos_per_millisecond}}
-      put(state{predictions = state.predictions{[prediction.id]=updated_prediction_final},
-        nft_renter = state.nft_renter{[nft_id]=Call.caller}})
-    else
-      abort("ERROR_NFT_ID_INVALID")
+  /// @notice create a new prediction
+  /// @param start_timestamp the timestamp when the prediction starts
+  /// @param end_timestamp the timestamp when the prediction ends
+  /// @param max_increase_amount the amount (ættos) that a rent amount can be increased compared to the previous rent amount
+  /// @param asset the asset to bet on (e.g. AE, BTC, MTL, XPR, ...)
+  /// @param target_price the target price (18 decimals) to bet on
+  /// @param ipfs_hash_lower_equal the IPFS hash of the "lower_equal" outcome NFT
+  /// @param ipfs_hash_higher the IPFS hash of the "higher" outcome NFT
+  /// @return the prediction object
+  stateful entrypoint create_prediction : (int, int, int, string, int, string, string) => prediction
 
-    // create option NFT metadata (always lower equal higher with values in ipfs_ref)
-    // determine NFT ids (mint)
-    // create prediction record
-    // set state
-        // add prediction to list
-        // update nft_meta
-  stateful entrypoint create_prediction(p_start_timestamp: int, p_end_timestamp: int, p_max_increase_rent_amount_aettos: int, p_asset: string, p_target_price: int, ipfs_hash_lower_equal: string, ipfs_hash_higher: string): prediction =    
-    let nft_lower_equal_id = state.next_nft_id
-    let nft_higher_id = state.next_nft_id+1
-    
-    let prediction = { 
-      id = state.next_prediction_id,
-      start_timestamp = p_start_timestamp,
-      end_timestamp = p_end_timestamp,
-      max_increase_rent_amount_aettos = p_max_increase_rent_amount_aettos, 
-      asset = p_asset,
-      target_price = p_target_price,
-      nft_lower_equal_id = nft_lower_equal_id,
-      nft_higher_id = nft_higher_id,
-      last_rent_timestamp = {},
-      nft_last_rent_aettos_per_millisecond = {},
-      nft_hodl_time = {},
-      collected_nft_balance = {},
-      oracle_query = None,
-      winning_nft = None }
-    //todo: mint NFT (event) and set contract as owner
-    put(state{nft_meta = state.nft_meta{[nft_lower_equal_id]=ipfs_hash_lower_equal, [nft_higher_id]=ipfs_hash_higher}})
-    put(state{next_prediction_id = state.next_prediction_id+1})
-    put(state{next_nft_id = state.next_nft_id+2})
-    put(state{nft_prediction = state.nft_prediction{[nft_lower_equal_id]=prediction.id, [nft_higher_id]=prediction.id}})
-    put(state{predictions = state.predictions{[prediction.id]=prediction}})
-    prediction       
+  /// @notice deposit an amount of ættos (implicit via paypable) for a specific outcome NFT
+  /// @param nft_id the NFT id the deposit belongs to
+  payable stateful entrypoint deposit_to_nft : (int) => unit
 
-  // check if prediction of nft is in state != "CLOSED"
-  // update renter_nft_balance
-  payable stateful entrypoint deposit_to_nft(nft_id: int) = // nft_id to rent, (implicit per payable: 240 AE for 10 days a 1 AE per hour)
-    require(Call.value > 0, "ERROR_DEPOSIT_AMOUNT_ZERO")
-    require(Map.member(nft_id, state.nft_prediction), "ERROR_PREDICTION_ID_INVALID")
-    let prediction_id = state.nft_prediction[nft_id]
-    let prediction = state.predictions[prediction_id]
-    require(get_prediction_state(prediction_id) != CLOSED, "ERROR_PREDICTION_CLOSED")    
-    let current_balance =
-      switch(Map.lookup(Call.caller,state.renter_nft_balance))
-        None => 0
-        Some(renters_nft_balance) => 
-          switch(Map.lookup(nft_id, renters_nft_balance))
-            None => 0
-            Some(nft_balance) => nft_balance    
-    put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]={[nft_id]=current_balance+Call.value}}})
+  /// @notice helper method to check if a potential renter can actually rent the outcome NFT for the given params
+  /// @param renter address of the potential renter
+  /// @param nft_id the NFT id
+  /// @param amount the amount (ættos) to pay per millisecond
+  /// @return true if it's possible to rent, otherwise false
+  entrypoint can_rent: (address, int, int) => bool
 
- // check if Call.caller is current owner of nft && prediction_state == "ACTIVE"
-        // if TRUE => throw
-    // if amount is given
-        // check renter_nft_balance
-          // if NOT sufficient => throw
-          // if sufficient
-              // Transfer amount to Caller
-  stateful entrypoint withdraw_from_nft(nft_id: int, amount_to_withdraw: option(int)) = // nft_id, amount to withdraw (if None => complete balance)
-    require(Map.member(nft_id, state.nft_prediction), "ERROR_NFT_ID_INVALID")
-    require(Map.member(Call.caller, state.renter_nft_balance) && Map.member(nft_id, state.renter_nft_balance[Call.caller]),"ERROR_NO_BALANCE_TO_WITHDRAW")
-    let prediction_id = state.nft_prediction[nft_id]
-    let prediction = state.predictions[prediction_id]
-    let has_renter = Map.member(nft_id, state.nft_renter)
-    require(!(get_prediction_state(prediction_id) == ACTIVE && has_renter && Call.caller == state.nft_renter[nft_id]),"ERROR_CURRENT_RENTER_CANNOT_WITHDRAW")
-    let complete_balance = state.renter_nft_balance[Call.caller][nft_id]
-    let amount_to_withdraw = 
-      switch(amount_to_withdraw)
-        None => complete_balance
-        Some(amount) => 
-          require(amount =< complete_balance,"ERROR_CANNOT_WITHDRAW_MORE_THAN_COMPLETE_BALANCE")
-          amount
-    // todo - emit event
-    put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]={[nft_id]=complete_balance-amount_to_withdraw}}})
-    Chain.spend(Call.caller,amount_to_withdraw)
+  /// @notice predict a specific outcome by renting the NFT
+           // requires a prior deposit by the Caller for the specific NFT
+           // the deposit balance for the caller needs to cover at least the min_rent_interval (default: 1 day)
+  /// @param nft_id the NFT id of the outcome to predict
+  /// @param amount the amount (ættos) to pay per millisecond
+  stateful entrypoint predict_nft : (int, int) => unit
 
-    // check if current timestamp >= end_timestamp of prediction
-        // if NOT => throw
-        // if TRUE           
-            // query oracle with asset (creates oracle_query) using specific query ttl and response ttl
-            // save oracle_query                
-  payable stateful entrypoint ask_for_winning_option(prediction_id : int) =
-    require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")
-    let prediction = state.predictions[prediction_id]
-    switch(get_prediction_state(prediction_id))
-      CREATED => abort("ERROR_PREDICTION_HAS_NOT_STARTED_YET")
-      ACTIVE => abort("ERROR_PREDICTION_HAS_NOT_ENDED_YET")
-      CLOSED =>
-        let query_fee = Oracle.query_fee(state.oracle)
-        require(query_fee =< Call.value, "ERROR_INSUFFICIENT_VALUE_FOR_QUERY_FEE")            
-        let relative_query_ttl = 1000
-        let oracle_query = Oracle.query(state.oracle, prediction.asset, query_fee, RelativeTTL(relative_query_ttl), RelativeTTL(1000))
-        put(state{predictions = state.predictions{[prediction.id]=prediction{oracle_query=Some(oracle_query)}}})
-/*TODO
-  stateful entrypoint process_oracle_response(prediction_id : int) =
-    require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")
-    let prediction = state.predictions[prediction_id]
-    switch(prediction.oracle_query)
-      None => abort("ERROR_ORACLE_QUERY_MISSING")
-      Some(oracle_query) =>
-        switch(Oracle.get_answer(state.oracle, oracle_query)) 
-          None => abort("ERROR_ORACLE_NOT_ANSWERED_OR_EXPIRED")  
-          Some(oracle_result) => 
-            // determine winning nft
-            let winning_nft =
-              switch(prediction.target_price > Int.to_str(oracle_result))
-                true => prediction.nft_higher_id
-                false => prediction.nft_lower_equal_id
-    */        
-        // if Some
-            // determine winning outcome of prediction (compare oracle response value to target value) // one of outcome (LOWER, HIGHER)
-            // iterate over nft_ids of prediction
-                // if state.nft_renter.get(nft_id) => None // no one has rented this nft
-                    // continue
-                // else
-                    // update renter_nft_balance of current owner in nft_renter -= (duration until end_timestamp of prediction * nft_last_amount_per_interval)
-                    // update nft_balances += (duration until end_timestamp of prediction * nft_last_amount_per_interval)
-                    // update nft_hodl_time of current owner with duration = end_timestamp - nft_last_update
-                    // update nft_last_update (set end_timestamp)
-                    // if nft_meta.get(nft_id).outcome == winning
-                        // set prediction.winning_nft
-                        // sum up prediction.collected_nft_balance
-                        // distribute summed up balance based on nft_hodl_time
-                    // distribute nft to token owner based on nft_hodl_time (omitting transfer_from in that case)
-            
-  /**
-    entrypoints
-  */
+  /// @notice withdraw a specific amount or the total balance from a specific NFT
+  /// @param nft_id the NFT id to withdraw from
+  /// @param amount the optional amount (ættos) to withdraw
+  stateful entrypoint withdraw_from_nft : (int, option(int)) => unit
 
-   // if None
-          // check if ttl of query is still valid
-              // if NOT => throw other specific message (query expired)
-              // if TRUE => return Option.None
-      // if Some
-          // return value
-  entrypoint check_oracle_has_responded(prediction_id : int) : bool =
-    require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")    
-    let prediction = state.predictions[prediction_id]
-    switch(prediction.oracle_query)
-      None => abort("ERROR_ORACLE_QUERY_MISSING")
-      Some(oracle_query) =>
-        switch(Oracle.get_answer(state.oracle, oracle_query))    
-          None => false           
-          Some(result) => true
+  /// @notice triggers a query to the oracle to resolve the winning NFT id later on
+           // the query_fee which is required to call the oracle must be provided by the caller
+  /// @param prediction_id the id of the prediction to resolve
+  payable stateful entrypoint ask_for_winning_option : (int) => unit
 
-  entrypoint get_prediction_state(prediction_id: int) : prediction_state =
-    require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")
-    let prediction = state.predictions[prediction_id]
-    if(Chain.timestamp < prediction.start_timestamp)
-      CREATED
-    elif(Chain.timestamp > prediction.end_timestamp)
-      CLOSED
-    else
-      ACTIVE
+  /// @notice helper function to check if the oracle has responded to the query
+  /// @param prediction_id the id of the prediction
+  /// @return true when the oracle has responded, otherwise false
+  entrypoint check_oracle_has_responded : (int) => bool
 
-  // return as tuple of (State, Prediction)
-  entrypoint prediction(prediction_id: int): (prediction_state * prediction) =     //todo - return option
-    require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")
-    //check: make ae-bugticket?
-    (get_prediction_state(prediction_id),state.predictions[prediction_id])
+  /// @notice processes the response of the oracle, determines the winner NFT id and transfers ownership of the NFTs to the address the held it the longest
+  /// @param prediction_id the id of the prediction to process the oracle response for
+  stateful entrypoint process_oracle_response : (int) => unit         
 
-  // return as tuple of (State, Prediction)
-  entrypoint all_predictions() : list(prediction_state * prediction) =    
-    List.map((x) => (get_prediction_state(pair_first(x)), pair_second(x)), Map.to_list(state.predictions))     
+  /// @notice helper method for the frontend to receive a tuple (winnings amount * deposit amount) for a certain NFT
+           // can only be called when the winning NFT has been determined
+  /// @param nft_id the id of the NFT to check the winnings and deposit from
+  /// @param renter the address of the renter
+  /// @return tuple (winnings amount * deposit amount)
+  entrypoint get_win_deposit : (int, address) => (int * int)
 
-  entrypoint predictions(filter_state: prediction_state) : list(prediction) =    
-    List.map((v) => pair_second(v),List.filter((x) => get_prediction_state(pair_first(x)) == filter_state,Map.to_list(state.predictions)))
+  /// @notice allows every historical renter of the winning outcome NFT to claim their rewards
+  /// @param prediction_id the id of the prediction to claim the reward from
+  stateful entrypoint claim : (int) => unit
 
-  // return owner of nft or none if prediction not closed (owner only exists after prediction is closed)
-  entrypoint owner_of(nft_id) : option(address) =
-    Map.lookup(nft_id, state.nft_renter)
+  /// @notice transfer an NFT from one address to another
+  /// @param from_address the address of the NFT owner
+  /// @param to_address the address of the NFT recipient (new owner)
+  /// @param nft_id the NFT id to transfer
+  stateful entrypoint transfer : (address, address, int) => unit   
 
-  // exists?
-        // if NOT => return Option(None)
-        // if yes => current renter still enough funds left? (calculation based on daily rent necessary)
-            // if NOT => return Option(None)
-            // if yes => return current renter using nft_owners
-  entrypoint current_renter(nft_id: int) : option(address) = // nft_id
-    require(Map.member(nft_id, state.nft_prediction), "ERROR_NFT_ID_INVALID")    
-    switch(get_prediction_state(state.nft_prediction[nft_id]))
-      CREATED => None
-      CLOSED => Some(state.nft_renter[nft_id])
-      ACTIVE => get_current_renter(nft_id)    
+  /// @notice helper function to get the current prediction state
+  /// @param prediction_id the id of the prediction
+  /// @return CREATED | ACTIVE | CLOSED | ORACLE_PROCESSED
+  entrypoint get_prediction_state : (int) => prediction_state
 
-  entrypoint get_rent_limits(nft_id : int) : (int * int) =  // get min and max rent amount for this nft
-    require(Map.member(nft_id, state.nft_prediction), "ERROR_NFT_ID_INVALID")
-    let prediction = state.predictions[state.nft_prediction[nft_id]]
-    let lower_limit = Map.lookup_default(nft_id,prediction.nft_last_rent_aettos_per_millisecond,0) + 1
-    (lower_limit, lower_limit + prediction.max_increase_rent_amount_aettos)
+  /// @notice get a prediction object and its current state
+  /// @param prediction_id the id of the prediction
+  /// @return tuple (prediction_state * prediction)
+  entrypoint prediction: (int) => (prediction_state * prediction)
 
-  entrypoint can_rent(renter : address, nft_id : int, aettos_per_millisecond : int) : bool = // check if given renter has enough balance to rent the given nft_id with the given aettos per ms
-    require(Map.member(nft_id, state.nft_prediction), "ERROR_NFT_ID_INVALID")
-    let prediction = state.predictions[state.nft_prediction[nft_id]]
-    let time_left_milliseconds = prediction.end_timestamp - Chain.timestamp
-    let required_amount_aettos =
-      switch((state.rent_interval - time_left_milliseconds) >= 0)
-        true => time_left_milliseconds * aettos_per_millisecond
-        false => state.rent_interval * aettos_per_millisecond
-    state.renter_nft_balance[Call.caller][nft_id] >= required_amount_aettos  
+  /// @notice get a list of all prediction objects and their current state
+  /// @return list of tuple (prediction_state * prediction)
+  entrypoint all_predictions : () => list(prediction_state * prediction)
 
-  // debug entrypoints
-  entrypoint get_next_prediction_id() : int = 
-    state.next_prediction_id
+  /// @notice get a list of all prediction objects filtered by a specific state
+  /// @return list of prediction
+  entrypoint predictions : (prediction_state) => list(prediction)
 
-  entrypoint get_rent_interval() : int =
-    state.rent_interval
+  /// @notice get the current owner of the NFT
+           // as long as the winning outcome NFT hasn't been determined the owner will be the contract itself
+  /// @param the NFT id
+  /// @return the address of the owner
+  entrypoint owner_of : (int) => address
 
-  entrypoint get_state() =
-    state
+  /// @notice get the current renter of the outcome NFT
+  /// @param the NFT id
+  /// @return optional address of the current renter
+  entrypoint current_renter: (int) => option(address)
 
-  entrypoint return_oracle(oracle: oracle(int,int)) : int =
-    Oracle.query_fee(oracle)
+  /// @notice get the rent limit amounts (ættos) for the next potential rent
+  /// @param the NFT id
+  /// @return tuple (min * max)
+  entrypoint get_rent_limits : (int) => (int * int)
 
-  stateful entrypoint queryIntIntOracle(oracle: oracle(int,int), param: int) : oracle_query(int, int) =
-    Oracle.query(oracle, param, 20000000000000, RelativeTTL(25), RelativeTTL(10))
-
-  stateful entrypoint registerIntIntOracle() : oracle(int, int) =
-    Oracle.register(Contract.address, 20000000000000, RelativeTTL(100))
-  
-  stateful entrypoint registerstrstrOracle(addr: address, sign: signature) : oracle(string, string) =
-    Oracle.register(addr, 30000000000000, RelativeTTL(100), signature = sign)
-
-
-  /**
-  helper functions
-   */
-  function get_current_renter(nft_id : int) : option(address) =
-    switch(Map.lookup(nft_id, state.nft_renter))
-      None => None
-      Some(last_renter) =>
-        let prediction = state.predictions[state.nft_prediction[nft_id]]
-        let last_renter_balance = state.renter_nft_balance[last_renter][nft_id]
-        let last_rent_aettos = prediction.nft_last_rent_aettos_per_millisecond[nft_id]
-        let last_rent_timestamp = prediction.last_rent_timestamp[nft_id]
-        let max_hodl_time = last_renter_balance / last_rent_aettos  // timespan the last renter can rent the nft given his last rent per ms
-        let current_rent_time = Chain.timestamp - last_rent_timestamp // rent time from last_rent_timestamp until now
-        switch((current_rent_time - max_hodl_time) >= 0)
-          true => None
-          false => Some(last_renter)
-
-  function pair_second(tuple) =
-    switch(tuple)
-      (_, e) => e
-
-  function pair_first(tuple) =
-    switch(tuple)
-      (e, _) => e
+  /// @notice get the configured rent interval (milliseconds)
+  entrypoint get_rent_interval : () => int
