@@ -6,11 +6,13 @@ import { PredictionEvent } from "../types";
 
 interface Props {
   onEventClick: (event: PredictionEvent) => void;
-  events: Array<PredictionEvent>;
+  events: Array<[string, PredictionEvent]>;
 }
 
 const StyledEventList = styled.div`
   display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
 
   margin-top: -${props => props.theme.margin.large};
   margin-left: -${props => props.theme.margin.large};
@@ -21,13 +23,17 @@ const StyledEventList = styled.div`
   }
 `;
 
+const DateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'long' });
+const CurrencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
+
 export const EventList = ({ onEventClick, events }: Props) => (
   <StyledEventList>
-    {events.map((evt) => (
-      <Card key={evt.id} onClick={() => onEventClick(evt)}>
+    {events.length === 0 && <BasicText>No event found. Create one now!</BasicText>}
+    {events.map(([type, evt]) => (
+      <Card key={evt.id} onClick={() => onEventClick(evt)} tag={type}>
         <BasicText>Price of <strong>{evt.asset}</strong></BasicText>
-        <BasicText>higher or lower than <strong>{evt.targetPrice}</strong></BasicText>
-        <BasicText>by <strong>{evt.endDate}</strong></BasicText>
+        <BasicText>higher or lower than <strong>{CurrencyFormatter.format(evt.target_price)}</strong></BasicText>
+        <BasicText>by <strong>{DateFormatter.format(evt.end_timestamp)}</strong></BasicText>
         <CardFooter>
           <Box row={false}>
             <Caption>current pot size</Caption>

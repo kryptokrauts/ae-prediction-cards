@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
 import styled from "styled-components";
-import { glassMixin } from '../../mixins/glass';
+import { glassMixinWithBlur } from '../../mixins/glass';
 import { Box } from '../box/Box';
 
 interface Props {
@@ -18,7 +18,7 @@ const StyledModal = styled(Box).attrs({
   min-height: 300px;
   max-height: calc(100% - 100px);
   border-radius: ${props => props.theme.borderRadius};
-  ${glassMixin};
+  ${glassMixinWithBlur};
   animation: pop-in 0.2s;
 
   @keyframes pop-in {

@@ -1,30 +1,30 @@
-import React from "react";
-import { useSelector } from "react-redux";
+import React, { useEffect, useState } from "react";
 import { useHistory } from "react-router";
-import { AppState } from "../state";
+import { usePredictionCardsApi } from "../common/api/PredictionCardsApiProvider";
+import { Spinner } from "../common/components/spinner/Spinner";
 import { EventList } from "./components/EventList";
 import { PredictionEvent } from "./types";
 
 export const EventDashboard = () => {
-  const { account } = useSelector<AppState, any>(state => state.wallet);
   const history = useHistory();
+  const predictionApi = usePredictionCardsApi();
+  const [isLoading, setIsLoading] = useState(true);
+  const [events, setEvents] = useState<Array<[string, PredictionEvent]>>([]);
 
-  const events: Array<PredictionEvent> = [{
-    id: '1',
-    asset: 'AE',
-    targetPrice: 5,
-    startDate: '2020-06-1',
-    endDate: '2020-07-01'
-  },
-  {
-    id: '2',
-    asset: 'BTC',
-    targetPrice: 70000,
-    startDate: '2020-06-1',
-    endDate: '2020-08-01'
-  }]
+  useEffect(() => {
+    (async () => {
+      await predictionApi.init();
+      const result = await predictionApi.getPredictions();
+      setEvents(result);
+      setIsLoading(false);
+    })();
+  }, [predictionApi]);
 
   return (
-    <EventList onEventClick={(event) => history.push(`/${event.id}`)} events={events} />
+    <>
+      {isLoading ? <Spinner /> : (
+        <EventList onEventClick={(event) => history.push(`/${event.id}`)} events={events} />
+      )}
+    </>
   )
 }

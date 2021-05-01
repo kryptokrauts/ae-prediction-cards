@@ -16,6 +16,9 @@ import { AppState } from "../state";
 const StyledWrapper = styled.div`
   display: flex;
   flex-direction: row;
+  position: fixed;
+  z-index: 999;
+  width: 100%;
   align-items: center;
   height: 64px;
   padding: ${props => `${props.theme.padding.small} ${props.theme.padding.large}`};
@@ -32,7 +35,7 @@ export const Navigation = () => {
   const history = useHistory();
   const wallet = useWallet();
   const [showModal, setShowModal] = useState(false);
-  const { account, balance, connecting } = useSelector<AppState, any>(state => state.wallet);
+  const { account, connecting } = useSelector<AppState, any>(state => state.wallet);
 
   const handleConnect = async () => {
     await wallet.connect();

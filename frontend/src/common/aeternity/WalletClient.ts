@@ -1,4 +1,4 @@
-import { Node, RpcAepp } from '@aeternity/aepp-sdk/es';
+import { Node, RpcAepp } from '@aeternity/aepp-sdk';
 import BrowserWindowMessageConnection from '@aeternity/aepp-sdk/es/utils/aepp-wallet-communication/connection/browser-window-message';
 import WalletDetector from '@aeternity/aepp-sdk/es/utils/aepp-wallet-communication/wallet-detector';
 import { Dispatch } from 'react';
@@ -23,6 +23,23 @@ export class WalletClient {
     this.dispatcher(walletConnected(await this.getAccountInfo()))
   }
 
+  getClient() {
+    return this.client;
+  }
+
+  isConnected(): boolean {
+    return !!this.client;
+  }
+
+  async getNetworkConf() {
+    return {
+      nodes: [
+        { name: 'test-net', instance: await Node({ url: process.env.REACT_APP_NODE_URL, internalUrl: process.env.REACT_APP_NODE_INTERNAL_URL }) }
+      ],
+      compilerUrl: process.env.REACT_APP_COMPILER_URL,
+    }
+  }
+
   private async getAccountInfo() {
     const account = await this.client.address();
     const balance = await this.client.balance(account);
@@ -33,15 +50,11 @@ export class WalletClient {
   }
 
   private async init() {
+    const networkConf = await this.getNetworkConf();
 
-    // Open iframe with Wallet if run in top window
-    //  window !== window.parent || await this.getReverseWindow()
     this.client = await RpcAepp({
       name: 'AEPP',
-      nodes: [
-        { name: 'test-net', instance: await Node({ url: process.env.REACT_APP_NODE_URL, internalUrl: process.env.REACT_APP_NODE_INTERNAL_URL }) }
-      ],
-      compilerUrl: process.env.REACT_APP_COMPILER_URL,
+      ...networkConf,
       onNetworkChange(params) {
         if (this.getNetworkId() !== params.networkId) alert(`Connected network ${this.getNetworkId()} is not supported with wallet network ${params.networkId}`)
       },

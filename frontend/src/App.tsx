@@ -13,7 +13,7 @@ const ContentWrapper = styled.div`
   flex-direction: row;
   flex-wrap: wrap;
   justify-content: center;
-  margin: ${props => props.theme.margin.xlarge};
+  margin: 96px 32px 32px 32px;
 `;
 
 export const App = () => {
