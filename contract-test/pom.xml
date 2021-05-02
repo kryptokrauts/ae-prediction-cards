@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+	<modelVersion>4.0.0</modelVersion>
+
+	<groupId>com.kryptokrauts.prediction-cards</groupId>
+	<artifactId>contract-test</artifactId>
+	<version>1.0.0-SNAPSHOT</version>
+
+	<properties>
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		<maven.compiler.source>1.8</maven.compiler.source>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>com.kryptokrauts</groupId>
+			<artifactId>aepp-sdk-java</artifactId>
+			<version>3.0.0-SNAPSHOT</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.javatuples</groupId>
+			<artifactId>javatuples</artifactId>
+			<version>1.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-lang3</artifactId>
+			<version>3.12.0</version>
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.projectlombok</groupId>
+			<artifactId>lombok</artifactId>
+			<version>1.18.10</version>
+			<scope>provided</scope>
+		</dependency>
+
+		<dependency>
+			<groupId>org.junit.jupiter</groupId>
+			<artifactId>junit-jupiter</artifactId>
+			<version>5.5.2</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.slf4j</groupId>
+			<artifactId>slf4j-simple</artifactId>
+			<version>1.7.29</version>
+			<scope>test</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.datatype</groupId>
+			<artifactId>jackson-datatype-jdk8</artifactId>
+			<version>2.9.6</version>
+		</dependency>
+	</dependencies>
+
+	<pluginRepositories>
+		<pluginRepository>
+			<id>maven-releases</id>
+			<url>http://oss.sonatype.org/service/local/staging/deploy/maven2</url>
+		</pluginRepository>
+		<pluginRepository>
+			<id>maven-snapshots</id>
+			<url>http://oss.sonatype.org/content/repositories/snapshots</url>
+		</pluginRepository>
+	</pluginRepositories>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>com.kryptokrauts</groupId>
+				<artifactId>contraect-maven-plugin</artifactId>
+				<version>2.0.0-SNAPSHOT</version>
+				<configuration>
+					<codegen>
+						<targetPath>${project.build.directory}/generated-sources/contraect</targetPath>
+						<targetPackage>com.kryptokrauts.contraect.generated</targetPackage>
+						<datatypePackage>com.kryptokrauts.contraect.generated.datatypes</datatypePackage>
+						<directories>
+							<directory>${project.basedir}/../contract</directory>
+						</directories>
+						<compilerBaseUrl>http://compiler.aelocal:3080</compilerBaseUrl>
+					</codegen>
+				</configuration>
+				<executions>
+					<execution>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>generate-contraects</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.codehaus.mojo</groupId>
+				<artifactId>build-helper-maven-plugin</artifactId>
+				<version>3.0.0</version>
+				<executions>
+					<execution>
+						<phase>generate-sources</phase>
+						<goals>
+							<goal>add-source</goal>
+						</goals>
+						<configuration>
+							<sources>
+								<source>${project.build.directory}/generated-sources/contraect</source>
+							</sources>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>2.22.2</version>
+			</plugin>
+			<plugin>
+				<groupId>com.coveo</groupId>
+				<artifactId>fmt-maven-plugin</artifactId>
+				<version>2.9</version>
+				<executions>
+					<execution>
+						<goals>
+							<goal>format</goal>
+							<goal>check</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+</project>
