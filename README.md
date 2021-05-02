@@ -5,18 +5,22 @@ Each outcome of a certain prediction is a unique Non Fungible Token (NFT). Inste
 
 _The original project where the idea comes from is https://realitycards.io/_
 
-### Akshwani Haeck / æternity blockchain
-This project was built during the [Akshwani Hæck](https://akshwanihaeck.devpost.com/) and is deployed on the [æternity blockchain](https://aeternity.com/).
-
 ## How we built it
+
+### Smart Contract
 The Smart Contract was written in virtual pair programming by Michel (@mitch-lbw) and Marco (@marc0olo). We used our [aepp-sdk-java](https://github.com/kryptokrauts/aepp-sdk-java) in combination with our [contraect-maven-plugin](https://github.com/kryptokrauts/contraect-maven-plugin) that allows developers to generate Java classes for Smart Contracts written in Sophia. With these generated classes we were able to easily interact with the Smart Contract (deployment as well as _type-safe_ calls of functions). The cool thing about this is that we were able to write our contract tests in pure Java.
 
-Michel and Marco also wrote the backend service for the Oracle. This service registers an oracle and makes sure that it never expires. It also polls in a certain interval whether a query has been requested via an _OracleQueryTx_. If an oracle query is present the oracle processes it by checking the price and responds with the respective result.
 
+### Oracle-service & process-prediction-service
+Michel and Marco also wrote the oracle-service and the process-prediction-service in Java. The oracle-service registers an oracle and makes sure that it never expires. It also polls in a certain interval whether a query has been requested via an _OracleQueryTx_. If an oracle query is present the oracle processes it by checking the price and responds with the respective result. The process-prediction-service periodically checks if a certain prediction has ended and performs the _OracleQueryTx_ to ask the oracle for the correct outcome. If the oracle responds in time this service will also perform a contract call to process the prediction outcome so that the Smart Contract can determine the winner NFT and the owners of the outcome NFT based on their renting time.
+
+### AENS name with contract pointer
 We claimed the name [predictioncards.chain](https://testnet.aenalytics.org/names/predictioncards.chain) and are using it to point to the address of our deployed contract.
 
+### Frontend with connection to Superhero Wallet
 The frontend was written in React by Jan-Patrick (@the-icarus) and makes use of the [aepp-sdk-js](https://github.com/aeternity/aepp-sdk-js). We allow the users to connect to the application using the Superhero Wallet extension so that they can easily create new predictions or rent a specific outcome NFT. We are using the contract pointer of predictioncards.chain to resolve the contract address for calling the contracts functions.
 
+### NFT images
 The GIF images that can be selected for the ourcome NFTs were created by Andreas and have been stored on IPFS using [Pinata](https://pinata.cloud/).
 
 ## Challenges we ran into
