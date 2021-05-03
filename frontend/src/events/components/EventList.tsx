@@ -2,6 +2,7 @@ import styled from "styled-components";
 import { Box } from "../../common/components/box/Box";
 import { Card, CardFooter } from "../../common/components/cards/Card";
 import { BasicText, Caption } from "../../common/components/text/Text";
+import { CurrencyFormatter, DateFormatter } from "../../common/utils/formatter";
 import { PredictionEvent } from "../types";
 
 interface Props {
@@ -22,9 +23,6 @@ const StyledEventList = styled.div`
     margin-left: ${props => props.theme.margin.large};
   }
 `;
-
-const DateFormatter = new Intl.DateTimeFormat('en-US', { dateStyle: 'long' });
-const CurrencyFormatter = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD' });
 
 export const EventList = ({ onEventClick, events }: Props) => (
   <StyledEventList>

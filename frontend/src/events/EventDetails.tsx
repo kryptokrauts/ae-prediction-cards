@@ -1,29 +1,60 @@
-import React from "react";
-import { useHistory } from "react-router";
+import React, { useEffect, useState } from "react";
+import { useHistory, useParams } from "react-router";
+import { usePredictionCardsApi } from "../common/api/PredictionCardsApiProvider";
 import { Box } from "../common/components/box/Box";
+import { Spinner } from "../common/components/spinner/Spinner";
 import { PredictionList } from "../predictions/PredictionList";
 import { Prediction } from "../predictions/types";
 import { EventInfo } from "./components/EventInfo";
+import { PredictionEvent } from "./types";
 
 export const EventDetails = () => {
+  const { eventId } = useParams<{ eventId: string }>();
   const history = useHistory();
-  const predictions: Array<Prediction> = [{
-    id: '1',
-    name: 'Lower',
-    owner: 'ak_asdasdf',
-    rent: 20,
-    winndingOdds: 70
+  const predictionApi = usePredictionCardsApi();
+  const [event, setEvent] = useState<PredictionEvent>();
+  const [isLoading, setIsLoading] = useState(true);
+  const [predictions, setPredictions] = useState<Array<Prediction>>([{
+    name: 'HIGHER'
   }, {
-    id: '2',
-    name: 'Higher',
-    owner: 'ak_asdasdf',
-    rent: 10,
-    winndingOdds: 30
-  }]
+    name: 'LOWER'
+  }]);
+
+  const prediction: Prediction = {
+    name: ''
+  }
+
+  useEffect(() => {
+    (async () => {
+      const [status, predictionEvent] = await predictionApi.getPrediction(eventId);
+      setEvent(predictionEvent);
+      predictions[0].id = predictionEvent.nft_higher_id;
+      predictions[1].id = predictionEvent.nft_lower_equal_id;
+      const [higherRenter, lowerRenter] = await Promise.all([
+        predictionApi.getNFTRenter(predictionEvent.nft_higher_id),
+        predictionApi.getNFTRenter(predictionEvent.nft_lower_equal_id),
+      ]);
+      setPredictions(([higher, lower]) => [{
+        ...higher,
+        owner: higherRenter
+      }, {
+        ...lower,
+        owner: lowerRenter
+      }])
+      setIsLoading(false);
+    })();
+  }, [predictionApi]);
+
   return (
     <Box center>
-      <EventInfo margin={[0, 0, "xlarge", 0]} />
-      <PredictionList predictions={predictions} onPredictionClick={(prediction) => history.push(`${1}/${prediction.id}`)} />
+      {isLoading ? (
+        <Spinner />
+      ) : (
+        <>
+          <EventInfo margin={[0, 0, "xlarge", 0]} event={event!} />
+          <PredictionList predictions={predictions} onPredictionClick={(prediction) => history.push(`${eventId}/${prediction.id}`)} />
+        </>
+      )}
     </Box>
   );
 }

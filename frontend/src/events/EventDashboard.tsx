@@ -13,7 +13,6 @@ export const EventDashboard = () => {
 
   useEffect(() => {
     (async () => {
-      await predictionApi.init();
       const result = await predictionApi.getPredictions();
       setEvents(result);
       setIsLoading(false);

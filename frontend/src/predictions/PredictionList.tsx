@@ -32,11 +32,7 @@ export const PredictionList: React.FC<Props> = ({ predictions, onPredictionClick
         <CardFooter>
           <Box row={false}>
             <Caption>owner</Caption>
-            <SmallText>{prediction.owner}</SmallText>
-          </Box>
-          <Box row={false} align="flex-end">
-            <Caption>time remaining</Caption>
-            <SmallText>17days</SmallText>
+            <SmallText>{prediction?.owner || 'None'}</SmallText>
           </Box>
         </CardFooter>
       </Card>

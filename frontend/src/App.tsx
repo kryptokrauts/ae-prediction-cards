@@ -25,7 +25,7 @@ export const App = () => {
           <Switch>
             <Route path="/" exact component={EventDashboard} />
             <Route path="/:eventId" exact component={EventDetails} />
-            <Route path="/:eventId/:prediction" exact component={PredictionDetails} />
+            <Route path="/:eventId/:predictionId" exact component={PredictionDetails} />
           </Switch>
         </ContentWrapper>
       </PredictionCardsProvider>

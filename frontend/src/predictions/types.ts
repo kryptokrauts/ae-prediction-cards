@@ -1,8 +1,7 @@
 export interface Prediction {
-  id?: string;
+  id?: number;
   name: string;
   imageUrl?: string;
-  rent: number;
-  owner: string;
-  winndingOdds: number;
+  rent?: number;
+  owner?: string;
 }

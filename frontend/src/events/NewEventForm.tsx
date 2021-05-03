@@ -30,12 +30,12 @@ export const NewEventForm: React.FC<Props> = ({ onClose }) => {
     asset: "",
     targetPrice: 0,
     start_timestamp: format(today),
-    end_timestamp: ""
+    end_timestamp: "",
+    max_increase_rent_amount_aettos: 1,
   });
 
   const createPredictionEvent = async (state) => {
     setIsLoading(true);
-    await predictionApi.init();
     await predictionApi.createPrediction(state);
     setIsLoading(false);
   }
