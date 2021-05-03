@@ -217,7 +217,7 @@ payable contract PredictionCards =
         let query_fee = Oracle.query_fee(state.oracle)
         require(query_fee =< Call.value, "ERROR_INSUFFICIENT_VALUE_FOR_QUERY_FEE")            
         let relative_query_ttl = 1000
-        let oracle_query = Oracle.query(state.oracle, String.concat(String.concat(prediction.asset,";"), Int.to_str(prediction.target_price)), query_fee, RelativeTTL(relative_query_ttl), RelativeTTL(1000))
+        let oracle_query = Oracle.query(state.oracle, String.concat(String.concat(String.concat(String.concat(prediction.asset,";"), Int.to_str(prediction.target_price)),";"),Int.to_str(prediction.end_timestamp)), query_fee, RelativeTTL(relative_query_ttl), RelativeTTL(1000))
         put(state{predictions = state.predictions{[prediction.id]=prediction{oracle_query=Some(oracle_query)}}})
 
   /* process_oracle_response */
@@ -366,7 +366,7 @@ payable contract PredictionCards =
       None => abort("ERROR_ORACLE_QUERY_MISSING")
       Some(oracle_query) =>
         switch(Oracle.get_answer(state.oracle, oracle_query))    
-          None => false           
+          None => false // check if query exists if not raise abort          
           Some(result) => true
 
   entrypoint get_prediction_state(prediction_id: int) : prediction_state =
@@ -449,6 +449,10 @@ payable contract PredictionCards =
     let prediction = state.predictions[prediction_id]
     Map.lookup_default(prediction.nft_lower_equal_id,prediction.collected_nft_balance,0)+
       Map.lookup_default(prediction.nft_higher_id,prediction.collected_nft_balance,0)
+
+  entrypoint get_nft_meta(nft_id : int) : string = 
+    require(Map.member(nft_id, state.nft_prediction), "ERROR_NFT_ID_INVALID")
+    state.nft_meta[nft_id]
 
   /**
   helper functions

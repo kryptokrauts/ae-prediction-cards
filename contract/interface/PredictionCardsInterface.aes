@@ -166,3 +166,8 @@ payable contract PredictionCards =
   /// @param the prediction id
   /// @return the collected rent in ættos
   entrypoint get_pot_size : (int) => int
+
+  /// @notice get the NFT meta informations (currently ipfs_hash)
+  /// @param the NFT id
+  /// @return the ipfs_hash
+  entrypoint get_nft_meta : (int) => string
