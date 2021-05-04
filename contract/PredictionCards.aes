@@ -447,8 +447,10 @@ payable contract PredictionCards =
   entrypoint get_pot_size(prediction_id : int) : int =
     require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")
     let prediction = state.predictions[prediction_id]
-    Map.lookup_default(prediction.nft_lower_equal_id,prediction.collected_nft_balance,0)+
-      Map.lookup_default(prediction.nft_higher_id,prediction.collected_nft_balance,0)
+    Map.lookup_default(prediction.nft_lower_equal_id,prediction.collected_nft_balance,0) +
+      Map.lookup_default(prediction.nft_higher_id,prediction.collected_nft_balance,0) +
+      get_current_nft_rent_balance(prediction.nft_lower_equal_id, prediction) +
+      get_current_nft_rent_balance(prediction.nft_higher_id, prediction)
 
   entrypoint get_nft_meta(nft_id : int) : string = 
     require(Map.member(nft_id, state.nft_prediction), "ERROR_NFT_ID_INVALID")
@@ -488,3 +490,18 @@ payable contract PredictionCards =
     switch(a>b)
       true => a
       false => b
+
+  // returns the balance which will be added after the current renter is outbid 
+  // can be complete balance of the renter
+  function get_current_nft_rent_balance(nft_id : int, prediction : prediction) : int =
+    switch(Map.lookup(nft_id, state.nft_renter))
+      None => 0
+      Some(last_renter) =>            
+        let last_renter_balance = state.renter_nft_balance[last_renter][nft_id]
+        let last_rent_timestamp = prediction.last_rent_timestamp[nft_id]
+        let last_rent_aettos = prediction.nft_last_rent_aettos_per_millisecond[nft_id]
+        let rent_period = Chain.timestamp - last_rent_timestamp        // difference in milliseconds between now and last rent
+        let max_hodl_time = last_renter_balance / last_rent_aettos     // max duration in milliseconds which current renter can hodl the rent        
+        switch((max_hodl_time - rent_period) >= 0)
+          true => rent_period * last_rent_aettos
+          false => last_renter_balance
