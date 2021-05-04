@@ -12,44 +12,44 @@ import lombok.Getter;
 public class OracleConfigration {
 
   @ConfigProperty(name = "base_url")
-  private String baseUrl;
+  protected String baseUrl;
 
   @ConfigProperty(name = "compiler_url")
-  private String compilerUrl;
+  protected String compilerUrl;
 
   @ConfigProperty(name = "network")
-  private Network network;
+  protected Network network;
 
   @ConfigProperty(name = "target_vm")
-  private VirtualMachine targetVM;
+  protected VirtualMachine targetVM;
 
   @ConfigProperty(name = "abi_version")
-  private BigInteger abiVersion;
+  protected BigInteger abiVersion;
 
   @ConfigProperty(name = "vm_version")
-  private BigInteger vmVersion;
+  protected BigInteger vmVersion;
 
   @ConfigProperty(name = "oracle_private_key")
-  private String oraclePrivateKey;
+  protected String oraclePrivateKey;
 
   @ConfigProperty(name = "num_trials_default", defaultValue = "60")
-  private int numTrialsDefault;
+  protected int numTrialsDefault;
 
   @ConfigProperty(name = "beneficiary_private_key")
-  private String beneficiaryPrivateKey;
+  protected String beneficiaryPrivateKey;
 
   @ConfigProperty(name = "local_node")
-  private boolean localNode;
+  protected boolean localNode;
 
   @ConfigProperty(name = "oracle.min_blocks_extension_trigger")
-  private long oracleMinBlocksExtensionTrigger;
+  protected long oracleMinBlocksExtensionTrigger;
 
   @ConfigProperty(name = "oracle.query_fee")
-  private BigInteger oracleQueryFee;
+  protected BigInteger oracleQueryFee;
 
   @ConfigProperty(name = "oracle.initial_ttl")
-  private BigInteger oracleInitialTTL;
+  protected BigInteger oracleInitialTTL;
 
   @ConfigProperty(name = "oracle.extension_ttl")
-  private BigInteger oracleExtensionTTL;
+  protected BigInteger oracleExtensionTTL;
 }
