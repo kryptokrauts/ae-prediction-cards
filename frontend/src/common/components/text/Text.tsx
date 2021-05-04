@@ -9,10 +9,11 @@ const textMixin = css`
 export const textColorMixing = (props: { light?: boolean }) => `color: ${props.light ? 'white' : 'black'};`;
 
 
-export const BasicText = styled.p<{ light?: boolean, marginTop?: MarginSize }>`
+export const BasicText = styled.p<{ light?: boolean, marginTop?: MarginSize, center?}>`
   ${textMixin}
   ${textColorMixing}
   font-size: 16px;
+  ${props => props.center && `text-align: center;`}
   ${props => props.marginTop && `margin-top: ${props.theme.margin[props.marginTop]};`}
 `;
 

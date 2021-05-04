@@ -12,9 +12,9 @@ export class PredictionCardsApi {
     this.walletClient = walletClient;
   }
 
-  async createPrediction(event: PredictionEvent): Promise<any> {
+  async createPrediction(event: PredictionEvent, img_higher: string, img_lower: string): Promise<any> {
     const instance = await this.getInteractiveInstance();
-    const callResult = await instance.methods.create_prediction(this.convertDate(event.start_timestamp), this.convertDate(event.end_timestamp), toAettos(1), event.asset, event.target_price, "QmQBd6aAWy7EFTpZ4T6vJoaskzKdiERQT4Xwu7wwzaa8YH", "QmQBd6aAWy7EFTpZ4T6vJoaskzKdiERQT4Xwu7wwzaa8YH");
+    const callResult = await instance.methods.create_prediction(this.convertDate(event.start_timestamp), this.convertDate(event.end_timestamp), toAettos(100), event.asset, (event.target_price * 100).toFixed(0), img_lower, img_higher);
     return callResult;
   };
 
@@ -47,7 +47,13 @@ export class PredictionCardsApi {
     }
   }
 
-  async rentNFT(id: string, amount: string): Promise<any> {
+  async getNFTImage(id: number): Promise<string> {
+    const contractObj = await this.getDryRunInstance();
+    const callResult = await contractObj.methods.get_nft_meta(id);
+    return callResult.decodedResult;
+  }
+
+  async rentNFT(id: string, amount?: string | 0): Promise<any> {
     const instance = await this.getInteractiveInstance();
     const callResult = await instance.methods.rent_nft(id, amount);
     return callResult;

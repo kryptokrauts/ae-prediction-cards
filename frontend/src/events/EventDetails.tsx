@@ -3,6 +3,7 @@ import { useHistory, useParams } from "react-router";
 import { usePredictionCardsApi } from "../common/api/PredictionCardsApiProvider";
 import { Box } from "../common/components/box/Box";
 import { Spinner } from "../common/components/spinner/Spinner";
+import { toAePerDay } from "../common/utils/transformer";
 import { PredictionList } from "../predictions/PredictionList";
 import { Prediction } from "../predictions/types";
 import { EventInfo } from "./components/EventInfo";
@@ -20,8 +21,9 @@ export const EventDetails = () => {
     name: 'LOWER'
   }]);
 
-  const prediction: Prediction = {
-    name: ''
+  const getRentById = (predictionEvent, nftId) => {
+    const [nft, rent] = predictionEvent?.nft_last_rent_aettos_per_millisecond?.find(([nft]) => nft === nftId) || [];
+    return rent;
   }
 
   useEffect(() => {
@@ -34,11 +36,19 @@ export const EventDetails = () => {
         predictionApi.getNFTRenter(predictionEvent.nft_higher_id),
         predictionApi.getNFTRenter(predictionEvent.nft_lower_equal_id),
       ]);
+      const [higherImage, lowerImage] = await Promise.all([
+        predictionApi.getNFTImage(predictionEvent.nft_higher_id),
+        predictionApi.getNFTImage(predictionEvent.nft_lower_equal_id),
+      ])
       setPredictions(([higher, lower]) => [{
         ...higher,
+        rent: toAePerDay(getRentById(predictionEvent, predictionEvent.nft_higher_id))?.toString(),
+        imageLower: higherImage,
         owner: higherRenter
       }, {
         ...lower,
+        rent: toAePerDay(getRentById(predictionEvent, predictionEvent.nft_lower_equal_id))?.toString()?.toString(),
+        imageHash: lowerImage,
         owner: lowerRenter
       }])
       setIsLoading(false);

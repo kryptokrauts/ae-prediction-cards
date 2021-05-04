@@ -5,6 +5,7 @@ import { BasicText, Caption } from "../../common/components/text/Text";
 import { CurrencyFormatter, DateFormatter } from "../../common/utils/formatter";
 import { PredictionEvent } from "../types";
 
+
 interface Props {
   onEventClick: (event: PredictionEvent) => void;
   events: Array<[string, PredictionEvent]>;
@@ -35,11 +36,7 @@ export const EventList = ({ onEventClick, events }: Props) => (
         <CardFooter>
           <Box row={false}>
             <Caption>current pot size</Caption>
-            <BasicText>4,198.00 AE</BasicText>
-          </Box>
-          <Box row={false} align="flex-end">
-            <Caption>time remaining</Caption>
-            <BasicText>17days</BasicText>
+            <BasicText>it's a secret - stay tuned</BasicText>
           </Box>
         </CardFooter>
       </Card>

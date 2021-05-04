@@ -1,8 +1,6 @@
+import React from "react";
 import styled from "styled-components";
-import { Box } from "../common/components/box/Box";
-import { Card, CardFooter } from "../common/components/cards/Card";
-import { SmallHeading } from "../common/components/text/Heading";
-import { Caption, SmallText } from "../common/components/text/Text";
+import { PredictionCard } from "./PredictionCards";
 import { Prediction } from "./types";
 
 interface Props {
@@ -25,17 +23,7 @@ const StyledPredictionList = styled.div`
 export const PredictionList: React.FC<Props> = ({ predictions, onPredictionClick }) => (
   <StyledPredictionList>
     {predictions.map(prediction => (
-      <Card key={prediction.id} vertical onClick={() => onPredictionClick(prediction)}>
-        <Box center>
-          <SmallHeading>{prediction.name}</SmallHeading>
-        </Box>
-        <CardFooter>
-          <Box row={false}>
-            <Caption>owner</Caption>
-            <SmallText>{prediction?.owner || 'None'}</SmallText>
-          </Box>
-        </CardFooter>
-      </Card>
+      <PredictionCard key={prediction.id} prediction={prediction} onClick={() => onPredictionClick(prediction)} />
     ))}
   </StyledPredictionList>
 )
