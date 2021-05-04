@@ -1,4 +1,4 @@
-peers: []
+peers: [ ]
 http:
   external:
     port: 3013
@@ -21,6 +21,7 @@ mining:
   beneficiary: "ak_twR4h7dEcUtc2iSEDv8kB7UFJJDGiEDQCXr85C3fYF8FdVdyo"
   expected_mine_rate: 250
   micro_block_cycle: 100
+  strictly_follow_top: true
   cuckoo:
     miner:
       executable: mean15-generic
@@ -28,7 +29,7 @@ mining:
       edge_bits: 15
 
 fork_management:
-  network_id: ae_devnet
+  network_id: local_lima_testnet
 
 logging:
   level: debug

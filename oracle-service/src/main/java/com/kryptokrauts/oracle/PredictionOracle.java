@@ -72,6 +72,7 @@ public class PredictionOracle {
                 .getJsonObject("market_data").getJsonObject("current_price").containsKey("usd")) {
           Double usd = jsonResult.getJsonObject("market_data").getJsonObject("current_price")
               .getDouble("usd");
+          usd = usd * 100;
           return usd.longValue();
         }
       }
