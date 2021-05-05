@@ -47,8 +47,9 @@ payable contract PredictionCards =
 
   /// @param oracle the oracle to use for resolving predictions
   /// @param min_rent_interval the optional min interval an outcome needs to be rent in milliseconds (default: 86400000 / 1 day)
+  /// @param relative_query_ttl the query ttl to use (configurable for local testing)
   /// @return the initial state object
-  stateful entrypoint init : (oracle(string, string), option(int)) => state
+  stateful entrypoint init : (oracle(string, string), option(int), option(int)) => state
 
   /// @notice create a new prediction
   /// @param start_timestamp the timestamp when the prediction starts
@@ -151,7 +152,7 @@ payable contract PredictionCards =
 
   /// @notice get the configured rent interval (milliseconds)
   entrypoint get_rent_interval : () => int
-  
+
   /// @notice get the amount (ættos) the calling renter has deposited to the given NFT id
   /// @param the NFT id
   /// @return the deposit in ættos
