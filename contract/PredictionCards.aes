@@ -2,8 +2,6 @@
 
 include "Option.aes"
 
-// https://github.com/aeternity/aepp-sophia-examples/blob/master/libraries/DateTime/contracts/DateTime.aes
-
 payable contract PredictionCards =
 
   record prediction =
@@ -29,6 +27,7 @@ payable contract PredictionCards =
 
   record state =
     { oracle: oracle(string, string)
+    , relative_query_ttl: int // configurable for local testing
     , rent_interval: int // duration in milliseconds, provided AE needs to cover this interval when renting the prediction (default: 86400, 1 day)
     , predictions: map(int, prediction) // map of all predictions
     , nft_meta: map(int, string) // map of nft ids and their corresponding ipfs_hash
@@ -54,9 +53,10 @@ payable contract PredictionCards =
   /**
     init method
    */ 
-  stateful entrypoint init(oracle: oracle(string, string), rent_interval : option(int)) =   
+  stateful entrypoint init(oracle: oracle(string, string), rent_interval : option(int), relative_query_ttl : option(int)) =   
     require(Oracle.check(oracle), "ERROR_DEPLOY_ORACLE") 
     {  oracle = oracle,
+       relative_query_ttl = Option.default(10, relative_query_ttl),
        rent_interval = Option.default(86400000, rent_interval),   //default rent interval to 1 day in ms
        predictions = {},
        nft_meta = {},
@@ -216,8 +216,7 @@ payable contract PredictionCards =
       CLOSED =>
         let query_fee = Oracle.query_fee(state.oracle)
         require(query_fee =< Call.value, "ERROR_INSUFFICIENT_VALUE_FOR_QUERY_FEE")            
-        let relative_query_ttl = 1000
-        let oracle_query = Oracle.query(state.oracle, String.concat(String.concat(String.concat(String.concat(prediction.asset,";"), Int.to_str(prediction.target_price)),";"),Int.to_str(prediction.end_timestamp)), query_fee, RelativeTTL(relative_query_ttl), RelativeTTL(1000))
+        let oracle_query = Oracle.query(state.oracle, String.concat(String.concat(String.concat(String.concat(prediction.asset,";"), Int.to_str(prediction.target_price)),";"),Int.to_str(prediction.end_timestamp)), query_fee, RelativeTTL(state.relative_query_ttl), RelativeTTL(state.relative_query_ttl))
         put(state{predictions = state.predictions{[prediction.id]=prediction{oracle_query=Some(oracle_query)}}})
 
   /* process_oracle_response */
@@ -360,13 +359,16 @@ payable contract PredictionCards =
       // if Some
           // return value
   entrypoint check_oracle_has_responded(prediction_id : int) : bool =
-    require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")    
+    require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")
     let prediction = state.predictions[prediction_id]
     switch(prediction.oracle_query)
       None => abort("ERROR_ORACLE_QUERY_MISSING")
       Some(oracle_query) =>
-        switch(Oracle.get_answer(state.oracle, oracle_query))    
-          None => false // check if query exists if not raise abort          
+        switch(Oracle.get_answer(state.oracle, oracle_query))
+          None =>
+            switch(Oracle.check_query(state.oracle, oracle_query))
+              true => false
+              false => abort("ERROR_ORACLE_QUERY_EXPIRED")
           Some(result) => true
 
   entrypoint get_prediction_state(prediction_id: int) : prediction_state =
@@ -474,9 +476,12 @@ payable contract PredictionCards =
           false => Some(last_renter)
 
   stateful function transfer_to_winner(nft_id : int, hodltime : map(int, map(address,int)))  =
-    let winner = pair_first(List.foldl((a,b)=>compare_int(a,b),(Contract.address,0), Map.to_list(hodltime[nft_id]))) // resolve winner for nft based on hodl time
-    put(state{nft_renter = state.nft_renter{[nft_id]=winner}})  
-    Chain.event(Transfer(Contract.address, winner, nft_id))      
+    switch(Map.lookup(nft_id, hodltime))
+      Some(nft_hodltime) => 
+        let winner = pair_first(List.foldl((a,b)=>compare_int(a,b),(Contract.address,0), Map.to_list(nft_hodltime))) // resolve winner for nft based on hodl time
+        put(state{nft_renter = state.nft_renter{[nft_id]=winner}})
+        Chain.event(Transfer(Contract.address, winner, nft_id))
+      None => ()
 
   function pair_second(tuple) =
     switch(tuple)
