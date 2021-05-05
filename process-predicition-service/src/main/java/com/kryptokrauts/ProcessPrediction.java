@@ -1,24 +1,41 @@
 package com.kryptokrauts;
 
-import io.quarkus.scheduler.Scheduled;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.scheduling.annotation.EnableScheduling;
+import org.springframework.scheduling.annotation.Scheduled;
+import org.springframework.stereotype.Component;
 
 @Slf4j
-@ApplicationScoped
+@Component
+@EnableScheduling
 public class ProcessPrediction {
 
-  @Inject
+  @Autowired
+  private ServiceConfig config;
+
+  @Autowired
   private ChainInteraction chainInteraction;
 
-  @Scheduled(every = "{scheduler.process_prediction_interval}")
-  public void processPredictions() {
-    log.info("Process predictions ...");
-    chainInteraction.processPredictions();
+  @Scheduled(fixedRate = 10000)
+  public void askOracle() {
+    log.info("Asking oracle to resolve predictions ...");
+    chainInteraction.askOracle();
   }
 
-  @Scheduled(every = "{scheduler.extend_name_interval}")
+  @Scheduled(fixedRate = 10000)
+  public void processOracleResponse() {
+    log.info("Processing oracle responses ...");
+    chainInteraction.processOracleResponse();
+  }
+
+  @Scheduled(fixedRate = 10000)
+  public void getState() {
+    log.info("Get state ...");
+    chainInteraction.getState();
+  }
+
+  @Scheduled(fixedRate = 10000)
   public void extendName() {
     log.info("Check and extend name if required ...");
     chainInteraction.checkAndExtendName();

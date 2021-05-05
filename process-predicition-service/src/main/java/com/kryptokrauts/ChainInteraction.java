@@ -28,19 +28,18 @@ import com.kryptokrauts.contraect.generated.PredictionCards.Prediction_state;
 import io.reactivex.Single;
 import io.reactivex.observers.TestObserver;
 import java.math.BigInteger;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Supplier;
 import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
-import javax.inject.Inject;
 import lombok.extern.slf4j.Slf4j;
 import org.javatuples.Pair;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
 
 @Slf4j
-@ApplicationScoped
+@Component
 public class ChainInteraction {
 
   private static final String AENS_NAME = "predictioncards.chain";
@@ -59,9 +58,9 @@ public class ChainInteraction {
 
   private String contractAddress;
 
-  private List<BigInteger> predictionIdsWaitingForResponse = new ArrayList<>();
+  private HashMap<BigInteger, String> predictionIdQueryMap = new HashMap<>();
 
-  @Inject
+  @Autowired
   private ServiceConfig serviceConfig;
 
   @PostConstruct
@@ -88,7 +87,8 @@ public class ChainInteraction {
         initLocalAccounts();
         contract = new PredictionCards(aeternityServiceConfig, null);
         Pair<String, String> deployedContract = contract
-            .deploy(new Oracle(serviceConfig.getOracleAddress()), Optional.empty());
+            .deploy(new Oracle(serviceConfig.getOracleAddress()), Optional.empty(),
+                Optional.of(new BigInteger("200")));
         contractAddress = deployedContract.getValue1();
         log.info("Contract address: {}", contractAddress);
         claimNameAndSetPointer();
@@ -106,7 +106,11 @@ public class ChainInteraction {
     log.info("Chain connection initialization successful");
   }
 
-  public void processPredictions() {
+  public void getState() {
+    log.info("state: {}", contract.get_state());
+  }
+
+  public void askOracle() {
     // contract pointer might have changed
     String contractPointer = getContractPointer();
     if (!contractAddress.equals(contractPointer)) {
@@ -115,7 +119,7 @@ public class ChainInteraction {
       // cc https://github.com/kryptokrauts/contraect-maven-plugin/issues/52
       contract = new PredictionCards(aeternityServiceConfig, contractPointer);
       // clear prediction ids as we are using a new contract
-      predictionIdsWaitingForResponse.clear();
+      predictionIdQueryMap.clear();
     }
     List<Prediction> closedPredictions = contract
         .predictions(new Prediction_state("CLOSED"));
@@ -135,24 +139,52 @@ public class ChainInteraction {
           } catch (Throwable e) {
             log.error("Unexpected error while waiting for tx to be mined.", e);
           }
-          predictionIdsWaitingForResponse.add(prediction.getId());
-        }
-      }
-      for (BigInteger pId : predictionIdsWaitingForResponse) {
-        if (contract.check_oracle_has_responded(pId)) {
-          log.info("Oracle has responded. Processing response for prediction with id '{}'", pId);
-          String txHash = contract.process_oracle_response(pId);
-          log.info("tx-hash (ask_for_winning_option): {}", txHash);
           try {
-            waitForTxMined(txHash);
-            // remove id from list
-            predictionIdsWaitingForResponse.remove(pId);
-          } catch (Throwable e) {
-            log.error("Unexpected error while waiting for tx to be mined.", e);
+            Prediction predictionWithQuery = contract.prediction(prediction.getId()).getValue1();
+            predictionIdQueryMap.put(prediction.getId(),
+                predictionWithQuery.getOracle_query().get().getOracle_query());
+          } catch (Exception e) {
+            log.error("Oracle query not present yet. Should be there on the next run =)", e);
           }
+        } else {
+          predictionIdQueryMap
+              .put(prediction.getId(), prediction.getOracle_query().get().getOracle_query());
         }
       }
     }
+  }
+
+  public void processOracleResponse() {
+    log.info("before: {}", predictionIdQueryMap);
+    for (BigInteger pId : predictionIdQueryMap.keySet()) {
+      Boolean hasResponded = false;
+      try {
+        hasResponded = contract.check_oracle_has_responded(pId);
+      } catch (Throwable e) {
+        log.info("Oracle query expired: {}", predictionIdQueryMap.get(pId));
+        predictionIdQueryMap.remove(pId);
+        String txHash = contract.ask_for_winning_option(pId, getOracleFee());
+        log.info("tx-hash (ask_for_winning_option): {}", txHash);
+        try {
+          waitForTxMined(txHash);
+        } catch (Throwable e2) {
+          log.error("Unexpected error while waiting for tx to be mined.", e2);
+        }
+      }
+      if (hasResponded) {
+        log.info("Oracle has responded. Processing response for prediction with id '{}'", pId);
+        String txHash = contract.process_oracle_response(pId);
+        log.info("tx-hash (process_oracle_response): {}", txHash);
+        try {
+          waitForTxMined(txHash);
+          predictionIdQueryMap.remove(pId);
+          log.info("Oracle response successfully processed.");
+        } catch (Throwable e) {
+          log.error("Unexpected error while waiting for tx to be mined.", e);
+        }
+      }
+    }
+    log.info("after remove: {}", predictionIdQueryMap);
   }
 
   public void checkAndExtendName() {
@@ -170,10 +202,6 @@ public class ChainInteraction {
         log.error("Error extending name", e);
       }
     }
-  }
-
-  public void getName() {
-    log.info(aeternityService.names.blockingGetNameId(AENS_NAME).toString());
   }
 
   /**
