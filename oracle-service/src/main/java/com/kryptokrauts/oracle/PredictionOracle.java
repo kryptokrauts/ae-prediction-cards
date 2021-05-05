@@ -43,6 +43,7 @@ public class PredictionOracle {
     log.info("Check for new oracle queries triggered");
     OracleQueryResult oracleQueryResult = chainInteraction.checkForOracleQueries();
     if (oracleQueryResult != null) {
+      log.info("OracleQueryResult: {}", oracleQueryResult);
       String query = oracleQueryResult.getQuery();
       if (query.contains(";") && query.split(";").length == 3) {
         String ticker = mapToCoingeckoTicker(query.split(";")[0]);
@@ -65,6 +66,7 @@ public class PredictionOracle {
   private Long processCoingeckoRequest(String ticker, String date) {
     try {
       String answer = coingeckoClient.getCoinValue(ticker, date, "false");
+      log.info("Coingecko answer: {}", answer);
       if (answer != null) {
         JsonObject jsonResult = JsonObject.mapFrom(mapper.readValue(answer, Map.class));
         if (jsonResult.containsKey("market_data")
@@ -79,7 +81,8 @@ public class PredictionOracle {
     } catch (Exception e) {
       log.error("Cannot process coingecko request", e);
     }
-    return null;
+    // TODO just for testing
+    return 1000l;
   }
 
   private String mapToCoingeckoTicker(String coinTicker) {
