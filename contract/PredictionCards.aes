@@ -97,10 +97,10 @@ payable contract PredictionCards =
           true => time_left_milliseconds * aettos_per_millisecond
           false => state.rent_interval * aettos_per_millisecond
       require(state.renter_nft_balance[Call.caller][nft_id] >= required_amount_aettos,String.concat(String.concat(String.concat("ERROR_INSUFFICIENT_BALANCE ",Int.to_str(required_amount_aettos))," "),Int.to_str(time_left_milliseconds)))
-      // update prediction 
+      // update prediction
       let updated_prediction_tmp =
         switch(Map.lookup(nft_id, state.nft_renter))
-          Some(last_renter) =>            
+          Some(last_renter) =>
             let last_renter_balance = state.renter_nft_balance[last_renter][nft_id]
             let last_rent_timestamp = prediction.last_rent_timestamp[nft_id]
             let last_rent_aettos = prediction.nft_last_rent_aettos_per_millisecond[nft_id]
@@ -113,10 +113,10 @@ payable contract PredictionCards =
               // compute amount of aettos for complete hodl time
             put(state{renter_nft_balance = state.renter_nft_balance{[last_renter]={[nft_id]=last_renter_balance-rent_amount_to_collect}}})
             let last_renter_collected_balance = Map.lookup_default(nft_id, prediction.collected_nft_balance,0)
-            let last_renter_hodl_time = Map.lookup_default(last_renter, Map.lookup_default(nft_id,prediction.nft_hodl_time,{}),0)        
+            let last_renter_hodl_time = Map.lookup_default(last_renter, Map.lookup_default(nft_id,prediction.nft_hodl_time,{}),0)
             prediction{
               collected_nft_balance = prediction.collected_nft_balance{[nft_id] = last_renter_collected_balance + rent_amount_to_collect},
-              nft_hodl_time = prediction.nft_hodl_time{[nft_id]={[last_renter] = last_renter_hodl_time+rent_period}}}                      
+              nft_hodl_time = prediction.nft_hodl_time{[nft_id]={[last_renter] = last_renter_hodl_time+rent_period}}}
           None => prediction
       let updated_prediction_final = updated_prediction_tmp{
         last_rent_timestamp = updated_prediction_tmp.last_rent_timestamp{[nft_id]=Chain.timestamp}, 
@@ -168,15 +168,17 @@ payable contract PredictionCards =
     require(Map.member(nft_id, state.nft_prediction), "ERROR_PREDICTION_ID_INVALID")
     let prediction_id = state.nft_prediction[nft_id]
     let prediction = state.predictions[prediction_id]
-    require(get_prediction_state(prediction_id) != CLOSED, "ERROR_PREDICTION_CLOSED")    
-    let current_balance =
-      switch(Map.lookup(Call.caller,state.renter_nft_balance))
-        None => 0
-        Some(renters_nft_balance) => 
+    require(get_prediction_state(prediction_id) != CLOSED, "ERROR_PREDICTION_CLOSED")
+    switch(Map.lookup(Call.caller,state.renter_nft_balance))
+      None =>
+        put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]={[nft_id]=Call.value}}})
+      Some(renters_nft_balance) =>
+        let current_balance =
           switch(Map.lookup(nft_id, renters_nft_balance))
             None => 0
-            Some(nft_balance) => nft_balance    
-    put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]={[nft_id]=current_balance+Call.value}}})
+            Some(nft_balance) => nft_balance
+        put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]=state.renter_nft_balance[Call.caller]{[nft_id]=Call.value+current_balance}}})
+            
 
  // check if Call.caller is current owner of nft && prediction_state == "ACTIVE"
         // if TRUE => throw
