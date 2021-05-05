@@ -117,3 +117,7 @@ bin/
 target/
 /.apt_generated/
 /.apt_generated_tests/
+
+### quarkus environment configuration
+.env
+.env_local

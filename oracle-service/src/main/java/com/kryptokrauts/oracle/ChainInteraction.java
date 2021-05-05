@@ -152,7 +152,7 @@ public class ChainInteraction {
           .responseFormat("string").ttl(BigInteger.ZERO).build();
       PostTransactionResult postResult = this.blockingPostTx(oracleRegisterTx);
       log.info("Oracle {} successfully registered within transaction: {}",
-          oracleKeyPair.getAddress(), postResult.getTxHash());
+          oracleKeyPair.getOracleAddress(), postResult.getTxHash());
     } catch (Throwable e) {
       log.error("Error checking if registering oracle", e);
     }
@@ -281,7 +281,12 @@ public class ChainInteraction {
   }
 
   private BigInteger getNextKeypairNonce(String address) {
-    return getAccount(address).getNonce().add(BigInteger.ONE);
+    AccountResult accountResult = getAccount(address);
+    if (accountResult.getRootErrorMessage() != null) {
+      log.info("Account not found.");
+      return BigInteger.ONE;
+    }
+    return accountResult.getNonce().add(BigInteger.ONE);
   }
 
   /**

@@ -131,10 +131,6 @@
 	</profiles>
 	<repositories>
 		<repository>
-			<id>maven-releases</id>
-			<url>http://oss.sonatype.org/service/local/staging/deploy/maven2</url>
-		</repository>
-		<repository>
 			<id>maven-snapshots</id>
 			<url>http://oss.sonatype.org/content/repositories/snapshots</url>
 		</repository>
