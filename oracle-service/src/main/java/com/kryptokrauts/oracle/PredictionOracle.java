@@ -88,7 +88,7 @@ public class PredictionOracle {
           if (dayBeforePredictiondate != null) {
             log.warn(
                 "Coingecko has not answered with expected format, this means we have a new day and coingecko did not provide the current price - retrieving price of day before");
-            processCoingeckoRequest(ticker, predictionDate, null);
+            return processCoingeckoRequest(ticker, dayBeforePredictiondate, null);
           } else {
             log.error(
                 "Coingecko also did not deliver a price for the day before {}, please validate configuration",
