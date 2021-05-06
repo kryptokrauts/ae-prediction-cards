@@ -9,4 +9,5 @@ export interface PredictionEvent {
   max_increase_rent_amount_aettos: number;
   nft_last_rent_aettos_per_millisecond: Array<[number, number]>;
   collected_nft_balance: Array<[number, number]>;
+  pot_size: number;
 }

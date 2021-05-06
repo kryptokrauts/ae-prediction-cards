@@ -103,7 +103,7 @@ export const NewEventForm: React.FC<Props> = ({ onClose }) => {
             {images.find(({ asset }) => asset === state.asset)?.higher.map(hash => (
               <Box key={hash} row center margin={['small', 0, 0, 'small']}>
                 <input type="radio" name="img_higher" value={hash} onChange={evt => dispatch({ target: evt.target.name, value: evt.target.value })} />
-                <img src={`https://ipfs.io/ipfs/${hash}`} width="100" height="100" />
+                <img src={`https://ipfs.io/ipfs/${hash}`} width="100" height="100" alt="asset thumbnail" />
               </Box>
             ))}
           </Box>
@@ -112,7 +112,7 @@ export const NewEventForm: React.FC<Props> = ({ onClose }) => {
             {images.find(({ asset }) => asset === state.asset)?.lower.map(hash => (
               <Box key={hash} row center margin={['small', 0, 0, 'small']}>
                 <input type="radio" name="img_lower" value={hash} onChange={evt => dispatch({ target: evt.target.name, value: evt.target.value })} />
-                <img src={`https://ipfs.io/ipfs/${hash}`} width="100" height="100" />
+                <img src={`https://ipfs.io/ipfs/${hash}`} width="100" height="100" alt="asset thumbnail" />
               </Box>
             ))}
           </Box>

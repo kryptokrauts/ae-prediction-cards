@@ -14,7 +14,15 @@ export const EventDashboard = () => {
   useEffect(() => {
     (async () => {
       const result = await predictionApi.getPredictions();
-      setEvents(result);
+      const potSizes = await Promise.all(
+        result.map(([, e]) => predictionApi.getPotSize(e.id!))
+      );
+      setEvents(result.map(([status, event], i) => ([
+        status, {
+          ...event,
+          pot_size: potSizes[i]
+        }
+      ])));
       setIsLoading(false);
     })();
   }, [predictionApi]);

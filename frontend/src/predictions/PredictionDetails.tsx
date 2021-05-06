@@ -35,7 +35,7 @@ export const PredictionDetails: React.FC<Props> = () => {
 
   useEffect(() => {
     (async () => {
-      const [status, predictionEvent] = await predictionApi.getPrediction(eventId);
+      const [, predictionEvent] = await predictionApi.getPrediction(eventId);
       setEvent(predictionEvent);
       const renter = await predictionApi.getNFTRenter(parseInt(predictionId));
       setPrediction({
@@ -45,16 +45,15 @@ export const PredictionDetails: React.FC<Props> = () => {
       });
       setIsLoading(false);
     })();
-  }, [predictionApi]);
+  }, [predictionApi, eventId, predictionId]);
 
   const triggerRent = async () => {
     setIsProcessing(true);
     if (deposit > 0) {
       const depositResponse = await predictionApi.deposit(predictionId, toAettos(deposit));
-      console.log('Deposit', depositResponse);
     }
 
-    const rentResponse = await predictionApi.rentNFT(predictionId, toAettosPerMillisecond(rent));
+    await predictionApi.rentNFT(predictionId, toAettosPerMillisecond(rent));
     setIsProcessing(false);
   }
 

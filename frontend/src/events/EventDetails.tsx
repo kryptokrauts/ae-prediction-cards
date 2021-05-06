@@ -22,16 +22,14 @@ export const EventDetails = () => {
   }]);
 
   const getRentById = (predictionEvent, nftId) => {
-    const [nft, rent] = predictionEvent?.nft_last_rent_aettos_per_millisecond?.find(([nft]) => nft === nftId) || [];
+    const [, rent] = predictionEvent?.nft_last_rent_aettos_per_millisecond?.find(([nft]) => nft === nftId) || [];
     return rent;
   }
 
   useEffect(() => {
     (async () => {
-      const [status, predictionEvent] = await predictionApi.getPrediction(eventId);
+      const [, predictionEvent] = await predictionApi.getPrediction(eventId);
       setEvent(predictionEvent);
-      predictions[0].id = predictionEvent.nft_higher_id;
-      predictions[1].id = predictionEvent.nft_lower_equal_id;
       const [higherRenter, lowerRenter] = await Promise.all([
         predictionApi.getNFTRenter(predictionEvent.nft_higher_id),
         predictionApi.getNFTRenter(predictionEvent.nft_lower_equal_id),
@@ -42,18 +40,20 @@ export const EventDetails = () => {
       ])
       setPredictions(([higher, lower]) => [{
         ...higher,
+        id: predictionEvent.nft_higher_id,
         rent: toAePerDay(getRentById(predictionEvent, predictionEvent.nft_higher_id))?.toString(),
-        imageLower: higherImage,
+        imageHash: higherImage,
         owner: higherRenter
       }, {
         ...lower,
+        id: predictionEvent.nft_lower_equal_id,
         rent: toAePerDay(getRentById(predictionEvent, predictionEvent.nft_lower_equal_id))?.toString()?.toString(),
         imageHash: lowerImage,
         owner: lowerRenter
       }])
       setIsLoading(false);
     })();
-  }, [predictionApi]);
+  }, [predictionApi, eventId]);
 
   return (
     <Box center>

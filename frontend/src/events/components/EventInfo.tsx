@@ -12,7 +12,7 @@ interface Props {
 export const EventInfo: React.FC<Props> = ({ margin, event }) => (
   <Box margin={margin}>
     <MidHeading light>Price of <strong>{event.asset}</strong></MidHeading>
-    <MidHeading light>higher or lower than <strong>{CurrencyFormatter.format(event.target_price)}</strong></MidHeading>
+    <MidHeading light>higher or lower than <strong>{CurrencyFormatter.format(event.target_price / 100)}</strong></MidHeading>
     <MidHeading light>by <strong>{DateFormatter.format(event.end_timestamp)}</strong></MidHeading>
   </Box>
 )

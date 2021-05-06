@@ -18,22 +18,15 @@ export class PredictionCardsApi {
     return callResult;
   };
 
-  async getPredictions(): Promise<Array<[string, PredictionEvent]>> {
-    await this.init();
-    const contractObj = await this.getDryRunInstance();
-    const callResult = await contractObj.methods.all_predictions();
-    return callResult.decodedResult;
-  }
-
-  async getPrediction(id: string): Promise<[string, PredictionEvent]> {
-    const contractObj = await this.getDryRunInstance();
-    const callResult = await contractObj.methods.prediction(id);
-    return callResult.decodedResult;
-  }
-
   async deposit(id: string, amount: number): Promise<any> {
     const contractObj = await this.getInteractiveInstance();
     const callResult = await contractObj.methods.deposit_to_nft(id, { amount })
+    return callResult;
+  }
+
+  async rentNFT(id: string, amount?: string | 0): Promise<any> {
+    const instance = await this.getInteractiveInstance();
+    const callResult = await instance.methods.rent_nft(id, amount);
     return callResult;
   }
 
@@ -47,16 +40,29 @@ export class PredictionCardsApi {
     }
   }
 
+  async getPredictions(): Promise<Array<[string, PredictionEvent]>> {
+    await this.init();
+    const contractObj = await this.getDryRunInstance();
+    const callResult = await contractObj.methods.all_predictions();
+    return callResult.decodedResult;
+  }
+
+  async getPrediction(id: string): Promise<[string, PredictionEvent]> {
+    const contractObj = await this.getDryRunInstance();
+    const callResult = await contractObj.methods.prediction(id);
+    return callResult.decodedResult;
+  }
+
   async getNFTImage(id: number): Promise<string> {
     const contractObj = await this.getDryRunInstance();
     const callResult = await contractObj.methods.get_nft_meta(id);
     return callResult.decodedResult;
   }
 
-  async rentNFT(id: string, amount?: string | 0): Promise<any> {
-    const instance = await this.getInteractiveInstance();
-    const callResult = await instance.methods.rent_nft(id, amount);
-    return callResult;
+  async getPotSize(id: number): Promise<number> {
+    const instance = await this.getDryRunInstance();
+    const callResult = await instance.methods.get_pot_size(id);
+    return callResult.decodedResult;
   }
 
   private async init() {

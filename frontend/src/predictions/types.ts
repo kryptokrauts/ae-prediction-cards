@@ -1,7 +1,7 @@
 export interface Prediction {
   id?: number;
   name: string;
-  imageUrl?: string;
+  imageHash?: string;
   rent?: string;
   owner?: string;
 }

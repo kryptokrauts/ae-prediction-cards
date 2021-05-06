@@ -1,0 +1,6 @@
+{
+  "dependencies": {
+    "@types/bignumber.js": "^5.0.0",
+    "bignumber.js": "^9.0.1"
+  }
+}

@@ -1,10 +1,17 @@
 import React from "react";
+import styled from "styled-components";
 import { Box } from "../common/components/box/Box";
 import { Card, CardFooter } from "../common/components/cards/Card";
 import { SmallHeading } from "../common/components/text/Heading";
 import { BasicText, Caption, SmallText } from "../common/components/text/Text";
 import { formatAddress } from "../common/utils/formatter";
 import { Prediction } from "./types";
+
+const NFTImage = styled.img`
+  width: 150px;
+  height: auto;
+  border-radius: ${props => props.theme.borderRadius};
+`;
 
 interface Props {
   prediction?: Prediction;
@@ -16,11 +23,14 @@ export const PredictionCard: React.FC<Props> = ({ prediction, onClick }) => (
     <Box center>
       <SmallHeading>{prediction?.name}</SmallHeading>
     </Box>
-    {prediction?.rent &&
+    {prediction?.rent && prediction?.owner &&
       <Box margin={['small', 0, 'small', 0]}>
         <BasicText center>{prediction?.rent} AE/day</BasicText>
       </Box>
     }
+    <Box center margin={['medium', 0, 0, 0]}>
+      <NFTImage src={`https://ipfs.io/ipfs/${prediction?.imageHash}`} alt="NFT image" />
+    </Box>
     <CardFooter>
       <Box row={false}>
         <Caption>renter</Caption>
