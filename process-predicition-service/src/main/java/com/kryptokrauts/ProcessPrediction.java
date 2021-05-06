@@ -29,15 +29,9 @@ public class ProcessPrediction {
     chainInteraction.processOracleResponse();
   }
 
-  @Scheduled(fixedRate = 10000)
-  public void getState() {
-    log.info("Get state ...");
-    chainInteraction.getState();
-  }
-
-  @Scheduled(fixedRate = 10000)
-  public void extendName() {
-    log.info("Check and extend name if required ...");
-    chainInteraction.checkAndExtendName();
-  }
+//  @Scheduled(fixedRate = 10000)
+//  public void extendName() {
+//    log.info("Check and extend name if required ...");
+//    chainInteraction.checkAndExtendName();
+//  }
 }
