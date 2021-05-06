@@ -137,6 +137,8 @@ payable contract PredictionCards =
         // add prediction to list
         // update nft_meta
   stateful entrypoint create_prediction(p_start_timestamp: int, p_end_timestamp: int, p_max_increase_rent_amount_aettos: int, p_asset: string, p_target_price: int, ipfs_hash_lower_equal: string, ipfs_hash_higher: string): prediction =    
+    require(p_end_timestamp > p_start_timestamp, "ERROR_END_TIMESTAMP_LOWER_THAN_START_TIMESTAMP")
+    require(p_end_timestamp > Chain.timestamp, "ERROR_END_TIMESTAMP_IS_IN_PAST")
     let nft_lower_equal_id = state.next_nft_id
     let nft_higher_id = state.next_nft_id+1
     
