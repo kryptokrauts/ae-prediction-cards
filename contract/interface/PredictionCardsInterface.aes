@@ -153,10 +153,11 @@ payable contract PredictionCards =
   /// @notice get the configured rent interval (milliseconds)
   entrypoint get_rent_interval : () => int
 
-  /// @notice get the amount (ættos) the calling renter has deposited to the given NFT id
+  /// @notice get the amount (ættos) the provided address has deposited and is remaining after potential rents to the given NFT id
   /// @param the NFT id
+  /// @param provided address (renter)
   /// @return the deposit in ættos
-  entrypoint get_nft_deposit : (int) => int
+  entrypoint get_remaining_balance : (int, address) => int
 
   /// @notice get the time left until the current rent expires (assuming it won't be outbidded)
   /// @param the NFT id

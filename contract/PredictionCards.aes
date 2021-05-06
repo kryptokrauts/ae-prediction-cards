@@ -320,13 +320,16 @@ payable contract PredictionCards =
   */
 
   // get amount deposited on the nft for renter calling this entrypoint
-  entrypoint get_nft_deposit(nft_id : int) : int =
+  entrypoint get_remaining_balance(nft_id : int, renter: address) : int =
     require(Map.member(nft_id, state.nft_prediction), "ERROR_NFT_ID_INVALID")
     let prediction = state.predictions[state.nft_prediction[nft_id]]
-    switch(Map.lookup(Call.caller, state.renter_nft_balance))
+    switch(Map.lookup(renter, state.renter_nft_balance))
       None => 0
       Some(renter_balances) =>
-        Map.lookup_default(nft_id, renter_balances, 0)
+        switch(Map.lookup(nft_id,state.nft_renter))
+          None => Map.lookup_default(nft_id, renter_balances, 0)
+          Some(current_renter) => 
+            Map.lookup_default(nft_id, renter_balances, 0) - get_current_nft_rent_balance(nft_id, prediction)
 
   // get the time left until the current renters rent expires
   entrypoint get_rent_expiration(nft_id : int) : int = 
