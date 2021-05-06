@@ -152,7 +152,6 @@ public class ChainInteraction {
   }
 
   public void processOracleResponse() {
-    log.info("before: {}", predictionIdQueryMap);
     for (BigInteger pId : predictionIdQueryMap.keySet()) {
       Boolean hasResponded = false;
       try {
@@ -181,7 +180,6 @@ public class ChainInteraction {
         }
       }
     }
-    log.info("after remove: {}", predictionIdQueryMap);
   }
 
   public void checkAndExtendName() {

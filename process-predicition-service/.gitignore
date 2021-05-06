@@ -121,3 +121,6 @@ target/
 ### quarkus environment configuration
 .env
 .env_local
+
+## application properties
+application.properties
