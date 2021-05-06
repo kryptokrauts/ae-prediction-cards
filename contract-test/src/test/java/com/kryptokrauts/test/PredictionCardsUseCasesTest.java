@@ -154,8 +154,12 @@ public class PredictionCardsUseCasesTest extends BaseTest {
     // r2 claim again
     log.info("State after renter 2 claimed win {}", contract.get_state());
     log.info("Claiming again");
-    log.info(renter2Contract.claim(prediction.getId()));
-    log.info("State after renter 2 claimed 2 times {}", contract.get_state());
+    try {
+      log.info(renter2Contract.claim(prediction.getId()));
+      log.info("State after renter 2 claimed 2 times {}", contract.get_state());
+    } catch (AException e) {
+      log.info("Expected - can't claim more than once");
+    }
   }
 
   @Test

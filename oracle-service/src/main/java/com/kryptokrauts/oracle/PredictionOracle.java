@@ -23,6 +23,8 @@ public class PredictionOracle {
 
   private static final String OUTCOME_LOWER_OR_EQUAL = "lower_or_equal";
 
+  private static final long ONE_DAY_IN_MS = 24 * 60 * 60 * 1000;
+
   @Inject
   private ChainInteraction chainInteraction;
 
@@ -48,8 +50,12 @@ public class PredictionOracle {
       if (query.contains(";") && query.split(";").length == 3) {
         String ticker = mapToCoingeckoTicker(query.split(";")[0]);
         String predictedPrice = query.split(";")[1];
-        String date = parseToDate(query.split(";")[2]);
-        Long predictionEndDatePrice = processCoingeckoRequest(ticker, date);
+        String date = query.split(";")[2];
+        Long unixTimestamp = toUnixTimestamp(date);
+        String predictionDate = parseToDate(unixTimestamp);
+        String dayBeforePredictiondate = parseToDate(unixTimestamp - ONE_DAY_IN_MS);
+        Long predictionEndDatePrice =
+            processCoingeckoRequest(ticker, predictionDate, dayBeforePredictiondate);
         String outcome = determinePredictionOutcome(predictedPrice, predictionEndDatePrice);
         if (outcome != null) {
           chainInteraction.respondToQuery(oracleQueryResult, outcome);
@@ -63,9 +69,10 @@ public class PredictionOracle {
     chainInteraction.extendOrRegisterOracle();
   }
 
-  private Long processCoingeckoRequest(String ticker, String date) {
+  private Long processCoingeckoRequest(String ticker, String predictionDate,
+      String dayBeforePredictiondate) {
     try {
-      String answer = coingeckoClient.getCoinValue(ticker, date, "false");
+      String answer = coingeckoClient.getCoinValue(ticker, predictionDate, "false");
       log.info("Coingecko answer: {}", answer);
       if (answer != null) {
         JsonObject jsonResult = JsonObject.mapFrom(mapper.readValue(answer, Map.class));
@@ -76,13 +83,24 @@ public class PredictionOracle {
               .getDouble("usd");
           usd = usd * 100;
           return usd.longValue();
+        } else {
+          if (dayBeforePredictiondate != null) {
+            log.warn(
+                "Coingecko has not answered with expected format, this means we have a new day and coingecko did not provide the current price - retrieving price of day before");
+            processCoingeckoRequest(ticker, predictionDate, null);
+          } else {
+            log.error(
+                "Coingecko also did not deliver a price for the day before {}, please validate configuration",
+                predictionDate);
+          }
         }
+      } else {
+        log.warn("Coingecko has not answered at all");
       }
     } catch (Exception e) {
-      log.error("Cannot process coingecko request", e);
+      log.error("Error occured requesting the price from coingecko", e);
     }
-    // TODO just for testing
-    return 1000l;
+    return null;
   }
 
   private String mapToCoingeckoTicker(String coinTicker) {
@@ -107,9 +125,18 @@ public class PredictionOracle {
     return null;
   }
 
-  private String parseToDate(String dateInMs) {
+  private Long toUnixTimestamp(String dateInMs) {
     try {
-      Date predictionEndDate = new Date(Long.parseLong(dateInMs));
+      return Long.parseLong(dateInMs);
+    } catch (Exception e) {
+      log.error("Cannot parse given milliseconds {} to date", dateInMs);
+    }
+    return null;
+  }
+
+  private String parseToDate(Long dateInMs) {
+    try {
+      Date predictionEndDate = new Date(dateInMs);
       return new SimpleDateFormat("dd-MM-yyyy").format(predictionEndDate);
     } catch (Exception e) {
       log.error("Cannot parse given timestamp {} to date", dateInMs);
