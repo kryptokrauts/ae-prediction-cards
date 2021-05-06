@@ -1,9 +1,5 @@
 package com.kryptokrauts.test;
 
-import java.math.BigInteger;
-import java.util.HashMap;
-import java.util.function.Supplier;
-import org.junit.jupiter.api.BeforeAll;
 import com.kryptokrauts.aeternity.sdk.constants.AENS;
 import com.kryptokrauts.aeternity.sdk.constants.Network;
 import com.kryptokrauts.aeternity.sdk.constants.VirtualMachine;
@@ -35,11 +31,14 @@ import com.kryptokrauts.aeternity.sdk.util.EncodingUtils;
 import io.reactivex.Single;
 import io.reactivex.observers.TestObserver;
 import io.vertx.core.json.Json;
+import java.math.BigInteger;
+import java.util.HashMap;
+import java.util.function.Supplier;
 import lombok.extern.slf4j.Slf4j;
+import org.junit.jupiter.api.BeforeAll;
 
 @Slf4j
 public class BaseTest {
-
 
   protected static UnitConversionService unitConversionService18Decimals;
 
@@ -52,7 +51,6 @@ public class BaseTest {
   protected static AeternityService aeternityService;
 
   protected static KeyPairService keyPairService;
-
 
   @BeforeAll
   public static void init() {
@@ -69,12 +67,18 @@ public class BaseTest {
   }
 
   protected static AeternityServiceConfiguration getConfigForKeypair(KeyPair kp) {
-    return AeternityServiceConfiguration.configure().compilerBaseUrl("http://localhost:3080")
-        .baseUrl("http://localhost").network(Network.LOCAL_LIMA_NETWORK)
-        .indaexBaseUrl("http://localhost:4000").keyPair(kp)
-        .targetVM(VirtualMachine.FATE.withVmVersion(new BigInteger("5"))
-            .withAbiVersion(new BigInteger("3")))
-        .millisBetweenTrailsToWaitForConfirmation(100l).compile();
+    return AeternityServiceConfiguration.configure()
+        .compilerBaseUrl("http://localhost:3080")
+        .baseUrl("http://localhost")
+        .network(Network.LOCAL_LIMA_NETWORK)
+        .indaexBaseUrl("http://localhost:4000")
+        .keyPair(kp)
+        .targetVM(
+            VirtualMachine.FATE
+                .withVmVersion(new BigInteger("5"))
+                .withAbiVersion(new BigInteger("3")))
+        .millisBetweenTrailsToWaitForConfirmation(100l)
+        .compile();
   }
 
   protected BigInteger getNextKeypairNonce() {
@@ -96,8 +100,8 @@ public class BaseTest {
     return blockingPostTx(tx, null);
   }
 
-  protected PostTransactionResult blockingPostTx(AbstractTransactionModel<?> tx,
-      String privateKey) {
+  protected PostTransactionResult blockingPostTx(
+      AbstractTransactionModel<?> tx, String privateKey) {
     if (privateKey == null) {
       privateKey = beneficiaryKeyPair.getEncodedPrivateKey();
     }
@@ -105,8 +109,10 @@ public class BaseTest {
         aeternityService.transactions.blockingPostTransaction(tx, privateKey);
     log.debug("PostTx hash: " + postTxResponse.getTxHash());
     TransactionResult txValue = waitForTxMined(postTxResponse.getTxHash());
-    log.debug(String.format("Transaction of type %s is mined at block %s with height %s",
-        txValue.getTxType(), txValue.getBlockHash(), txValue.getBlockHeight()));
+    log.debug(
+        String.format(
+            "Transaction of type %s is mined at block %s with height %s",
+            txValue.getTxType(), txValue.getBlockHash(), txValue.getBlockHeight()));
 
     return postTxResponse;
   }
@@ -124,14 +130,17 @@ public class BaseTest {
       int doneTrials = 1;
 
       while (blockHeight == -1 && doneTrials < NUM_TRIALS_DEFAULT) {
-        minedTx = callMethodAndGetResult(
-            () -> aeternityService.info.asyncGetTransactionByHash(txHash), TransactionResult.class);
+        minedTx =
+            callMethodAndGetResult(
+                () -> aeternityService.info.asyncGetTransactionByHash(txHash),
+                TransactionResult.class);
         if (minedTx.getBlockHeight().intValue() > 1) {
           log.debug("Mined tx: " + minedTx);
           blockHeight = minedTx.getBlockHeight().intValue();
         } else {
           log.debug(
-              String.format("Transaction not mined yet, trying again in 1 second (%s of %s)...",
+              String.format(
+                  "Transaction not mined yet, trying again in 1 second (%s of %s)...",
                   doneTrials, NUM_TRIALS_DEFAULT));
           Thread.sleep(1000);
           doneTrials++;
@@ -139,8 +148,9 @@ public class BaseTest {
       }
 
       if (blockHeight == -1) {
-        throw new InterruptedException(String
-            .format("Transaction %s was not mined after %s trials, aborting", txHash, doneTrials));
+        throw new InterruptedException(
+            String.format(
+                "Transaction %s was not mined after %s trials, aborting", txHash, doneTrials));
       }
       return minedTx;
     } catch (Throwable e) {
@@ -153,8 +163,9 @@ public class BaseTest {
     return callMethodAndGetResult(NUM_TRIALS_DEFAULT, observerMethod, type, false);
   }
 
-  protected <T> T callMethodAndGetResult(Integer numTrials, Supplier<Single<T>> observerMethod,
-      Class<T> type, boolean awaitException) throws Throwable {
+  protected <T> T callMethodAndGetResult(
+      Integer numTrials, Supplier<Single<T>> observerMethod, Class<T> type, boolean awaitException)
+      throws Throwable {
 
     if (numTrials == null) {
       numTrials = NUM_TRIALS_DEFAULT;
@@ -178,17 +189,20 @@ public class BaseTest {
           }
           throw new InterruptedException("Max number of function call trials exceeded, aborting");
         }
-        log.debug(String.format(
-            "Unable to receive object of type %s, trying again in 1 second (%s of %s)...",
-            type.getSimpleName(), doneTrials, numTrials));
+        log.debug(
+            String.format(
+                "Unable to receive object of type %s, trying again in 1 second (%s of %s)...",
+                type.getSimpleName(), doneTrials, numTrials));
         Thread.sleep(1000);
         doneTrials++;
       } else {
         if (!awaitException) {
           result = singleTestObserver.values().get(0);
         } else {
-          log.debug(String.format("Waiting for exception, trying again in 1 second (%s of %s)...",
-              doneTrials, numTrials));
+          log.debug(
+              String.format(
+                  "Waiting for exception, trying again in 1 second (%s of %s)...",
+                  doneTrials, numTrials));
           Thread.sleep(1000);
           doneTrials++;
         }
@@ -206,11 +220,17 @@ public class BaseTest {
     BigInteger initialOracleTtl = currentHeight.add(BigInteger.valueOf(5000));
 
     OracleRegisterTransactionModel oracleRegisterTx =
-        OracleRegisterTransactionModel.builder().accountId(oracleKeyPair.getAddress())
-            .abiVersion(ZERO).nonce(getAccount(oracleKeyPair.getAddress()).getNonce().add(ONE))
-            .oracleTtl(initialOracleTtl).oracleTtlType(OracleTTLType.BLOCK)
-            .queryFee(BigInteger.valueOf(100)).queryFormat("string").responseFormat("string")
-            .ttl(ZERO).build();
+        OracleRegisterTransactionModel.builder()
+            .accountId(oracleKeyPair.getAddress())
+            .abiVersion(ZERO)
+            .nonce(getAccount(oracleKeyPair.getAddress()).getNonce().add(ONE))
+            .oracleTtl(initialOracleTtl)
+            .oracleTtlType(OracleTTLType.BLOCK)
+            .queryFee(BigInteger.valueOf(100))
+            .queryFormat("string")
+            .responseFormat("string")
+            .ttl(ZERO)
+            .build();
     blockingPostTx(oracleRegisterTx, oracleKeyPair.getEncodedPrivateKey());
     log.info("New oracle {} registered", oracleKeyPair.getOracleAddress());
     return oracleKeyPair;
@@ -218,9 +238,14 @@ public class BaseTest {
 
   protected void fundAddress(String recipient, BigInteger amount) {
     log.debug("Spending amount of {} to recipient {}", amount, recipient);
-    SpendTransactionModel spendTx = SpendTransactionModel.builder().amount(amount)
-        .sender(beneficiaryKeyPair.getAddress()).recipient(recipient).ttl(BigInteger.ZERO)
-        .nonce(getNextKeypairNonce(beneficiaryKeyPair.getAddress())).build();
+    SpendTransactionModel spendTx =
+        SpendTransactionModel.builder()
+            .amount(amount)
+            .sender(beneficiaryKeyPair.getAddress())
+            .recipient(recipient)
+            .ttl(BigInteger.ZERO)
+            .nonce(getNextKeypairNonce(beneficiaryKeyPair.getAddress()))
+            .build();
     blockingPostTx(spendTx);
     log.info("Spending amount of {} to recipient {} successful", amount, recipient);
   }
@@ -241,9 +266,14 @@ public class BaseTest {
 
     BigInteger nonce = getAccount(oracleKeyPair.getAddress()).getNonce().add(ONE);
     OracleRespondTransactionModel oracleRespondTx =
-        OracleRespondTransactionModel.builder().oracleId(oracleKeyPair.getOracleAddress())
-            .queryId(oracleQueryResult.getId()).nonce(nonce).response(outcome)
-            .responseTtl(oracleQueryResult.getResponseTtl().getValue()).ttl(ZERO).build();
+        OracleRespondTransactionModel.builder()
+            .oracleId(oracleKeyPair.getOracleAddress())
+            .queryId(oracleQueryResult.getId())
+            .nonce(nonce)
+            .response(outcome)
+            .responseTtl(oracleQueryResult.getResponseTtl().getValue())
+            .ttl(ZERO)
+            .build();
 
     PostTransactionResult postResult =
         blockingPostTx(oracleRespondTx, oracleKeyPair.getEncodedPrivateKey());
@@ -253,12 +283,22 @@ public class BaseTest {
   protected void claimName() {
     BigInteger salt = CryptoUtils.generateNamespaceSalt();
     NamePreclaimTransactionModel namePreclaimTx =
-        NamePreclaimTransactionModel.builder().accountId(beneficiaryKeyPair.getAddress())
-            .name(predictioncards).salt(salt).nonce(getNextKeypairNonce()).ttl(ZERO).build();
+        NamePreclaimTransactionModel.builder()
+            .accountId(beneficiaryKeyPair.getAddress())
+            .name(predictioncards)
+            .salt(salt)
+            .nonce(getNextKeypairNonce())
+            .ttl(ZERO)
+            .build();
     blockingPostTx(namePreclaimTx);
     NameClaimTransactionModel nameClaimTx =
-        NameClaimTransactionModel.builder().accountId(beneficiaryKeyPair.getAddress())
-            .name(predictioncards).nameSalt(salt).nonce(getNextKeypairNonce()).ttl(ZERO).build();
+        NameClaimTransactionModel.builder()
+            .accountId(beneficiaryKeyPair.getAddress())
+            .name(predictioncards)
+            .nameSalt(salt)
+            .nonce(getNextKeypairNonce())
+            .ttl(ZERO)
+            .build();
     blockingPostTx(nameClaimTx);
     log.info("Name {} claimed for contract", predictioncards);
   }
@@ -270,14 +310,21 @@ public class BaseTest {
 
     NameEntryResult nameEntryResult = aeternityService.names.blockingGetNameId(predictioncards);
 
-    NameUpdateTransactionModel nameUpdateTx = NameUpdateTransactionModel.builder()
-        .accountId(beneficiaryKeyPair.getAddress()).nameId(nameEntryResult.getId())
-        .nonce(getNextKeypairNonce(beneficiaryKeyPair.getAddress())).ttl(ZERO).clientTtl(clientTtl)
-        .nameTtl(nameTtl).pointers(new HashMap<String, String>() {
-          {
-            put(AENS.POINTER_KEY_CONTRACT, contractId);
-          }
-        }).build();
+    NameUpdateTransactionModel nameUpdateTx =
+        NameUpdateTransactionModel.builder()
+            .accountId(beneficiaryKeyPair.getAddress())
+            .nameId(nameEntryResult.getId())
+            .nonce(getNextKeypairNonce(beneficiaryKeyPair.getAddress()))
+            .ttl(ZERO)
+            .clientTtl(clientTtl)
+            .nameTtl(nameTtl)
+            .pointers(
+                new HashMap<String, String>() {
+                  {
+                    put(AENS.POINTER_KEY_CONTRACT, contractId);
+                  }
+                })
+            .build();
     blockingPostTx(nameUpdateTx);
     log.info("Contract now points to {}", predictioncards);
   }
@@ -286,11 +333,18 @@ public class BaseTest {
     log.info("Creating oracle query for coin {} and price {}", coin, price);
     String oracleId = oracleKeyPair.getOracleAddress();
     BigInteger nonce = getNextKeypairNonce();
-    OracleQueryTransactionModel oracleQueryTx = OracleQueryTransactionModel.builder()
-        .senderId(beneficiaryKeyPair.getAddress()).oracleId(oracleId).nonce(nonce)
-        .query(coin + ";" + price + ";" + System.currentTimeMillis())
-        .queryFee(BigInteger.valueOf(100)).queryTtl(BigInteger.valueOf(100)).ttl(ZERO)
-        .queryTtlType(OracleTTLType.DELTA).responseTtl(BigInteger.valueOf(100)).build();
+    OracleQueryTransactionModel oracleQueryTx =
+        OracleQueryTransactionModel.builder()
+            .senderId(beneficiaryKeyPair.getAddress())
+            .oracleId(oracleId)
+            .nonce(nonce)
+            .query(coin + ";" + price + ";" + System.currentTimeMillis())
+            .queryFee(BigInteger.valueOf(100))
+            .queryTtl(BigInteger.valueOf(100))
+            .ttl(ZERO)
+            .queryTtlType(OracleTTLType.DELTA)
+            .responseTtl(BigInteger.valueOf(100))
+            .build();
 
     PostTransactionResult postResult =
         blockingPostTx(oracleQueryTx, beneficiaryKeyPair.getEncodedPrivateKey());

@@ -19,7 +19,8 @@ payable contract PredictionCards =
     , nft_hodl_time: map(int, map(address, int)) // owner, hodl duration per owner (needed to calculate payout)
     , collected_nft_balance: map(int, int) // map of nft_id and their collected rent amount
     , oracle_query: option(oracle_query(string, string)) // the query data used to determine the winner
-    , winning_nft_id: option(int)} // the nft_id of the correct option
+    , winning_nft_id: option(int) // the nft_id of the correct option
+    , renter_claimed: map(address, bool)} // tracks if a renter has claimed
 
   record state =
     { oracle: oracle(string, string)

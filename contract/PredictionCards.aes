@@ -18,7 +18,8 @@ payable contract PredictionCards =
     , nft_hodl_time: map(int, map(address, int)) // owner, hodl duration per owner (needed to calculate payout)
     , collected_nft_balance: map(int, int) // map of nft and their collected rent amount
     , oracle_query: option(oracle_query(string, string)) // the query data used to determine the winner
-    , winning_nft_id: option(int) }// the nft_id of the correct option
+    , winning_nft_id: option(int) // the nft_id of the correct option
+    , renter_claimed: map(address, bool)} // tracks if a renter has claimed
 
   //record oracle_query_data =
   //  { query: oracle_query(string, string)
@@ -153,7 +154,8 @@ payable contract PredictionCards =
       nft_hodl_time = {},
       collected_nft_balance = {},
       oracle_query = None,
-      winning_nft_id = None }
+      winning_nft_id = None,
+      renter_claimed = {} }
     put(state{nft_meta = state.nft_meta{[nft_lower_equal_id]=ipfs_hash_lower_equal, [nft_higher_id]=ipfs_hash_higher}})
     put(state{next_prediction_id = state.next_prediction_id+1})
     put(state{next_nft_id = state.next_nft_id+2})
@@ -261,8 +263,8 @@ payable contract PredictionCards =
             let updated_prediction = process_nft(prediction.nft_higher_id, process_nft(prediction.nft_lower_equal_id, prediction)){winning_nft_id=Some(winning_nft_id)}            
             put(state{predictions = state.predictions{[prediction_id]=updated_prediction}})
             // determine new nft owners (longest hodlers) and transfer to them
-            transfer_to_winner(prediction.nft_higher_id, prediction.nft_hodl_time)
-            transfer_to_winner(prediction.nft_lower_equal_id, prediction.nft_hodl_time)            
+            transfer_to_winner(prediction.nft_higher_id, updated_prediction.nft_hodl_time)
+            transfer_to_winner(prediction.nft_lower_equal_id, updated_prediction.nft_hodl_time)            
 
 
   stateful function process_nft(nft_id : int, prediction : prediction) : prediction = 
@@ -296,6 +298,7 @@ payable contract PredictionCards =
   stateful entrypoint claim(prediction_id : int) =
     require(Map.member(prediction_id, state.predictions), "ERROR_PREDICTION_ID_INVALID")
     let prediction = state.predictions[prediction_id]
+    require(Map.lookup(Call.caller, prediction.renter_claimed) == None, "ERROR_ALREADY_CLAIMED")
     require(get_prediction_state(prediction.id) == ORACLE_PROCESSED, "ERROR_PREDICTION_WINNER_NOT_DETERMINED")
     switch(prediction.winning_nft_id)
       None => abort("ERROR_INTERNAL")
@@ -304,7 +307,9 @@ payable contract PredictionCards =
         let claim_amount = (prediction.collected_nft_balance[prediction.nft_lower_equal_id] + prediction.collected_nft_balance[prediction.nft_higher_id]) 
           / prediction.nft_hodl_time[winning_nft_id][Call.caller]
         let current_renter_balance = state.renter_nft_balance[Call.caller][winning_nft_id]
-        put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]=state.renter_nft_balance[Call.caller]{[winning_nft_id]=current_renter_balance + claim_amount}}})
+        put(state{
+          predictions = state.predictions{[prediction_id]=prediction{renter_claimed = prediction.renter_claimed{[Call.caller]=true}} },
+          renter_nft_balance = state.renter_nft_balance{[Call.caller]=state.renter_nft_balance[Call.caller]{[winning_nft_id]=current_renter_balance + claim_amount}}})
         withdraw_from_nft(winning_nft_id, None)
           
 
@@ -500,7 +505,7 @@ payable contract PredictionCards =
       (e, _) => e
   
   function compare_int(a : (address * int), b: (address * int)) : (address * int) = 
-    switch(a>b)
+    switch(pair_second(a)>pair_second(b))
       true => a
       false => b
 

@@ -4,7 +4,9 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Optional;
 import org.javatuples.Pair;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.MethodOrderer;
+import org.junit.jupiter.api.Order;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.TestMethodOrder;
 import com.kryptokrauts.aeternity.sdk.domain.secret.KeyPair;
@@ -32,12 +34,12 @@ public class PredictionCardsUseCasesTest extends BaseTest {
       unitConversionService18Decimals.toSmallestUnit("1").divide(BigInteger.valueOf(86400000));
 
   @Test
+  @Order(1)
   public void prepareLocalNode() {
     oracleKeyPair = registerOracle();
     deployContract();
     claimName();
     updateContractPointer(contractId);
-
 
     renter1 = keyPairService.generateKeyPair();
     renter2 = keyPairService.generateKeyPair();
@@ -53,6 +55,7 @@ public class PredictionCardsUseCasesTest extends BaseTest {
   }
 
   @Test
+  @Order(2)
   public void testMultipleRenters() {
     renter1 = keyPairService.generateKeyPair();
     renter2 = keyPairService.generateKeyPair();
@@ -60,7 +63,7 @@ public class PredictionCardsUseCasesTest extends BaseTest {
     fundAddress(renter1.getAddress(), oneAE.multiply(BigInteger.valueOf(150)));
     fundAddress(renter2.getAddress(), oneAE.multiply(BigInteger.valueOf(150)));
     PredictionCards contract = new PredictionCards(config, getPredictionCardsContractId());
-    Long OneMins = 60l * 4l * 1000l;
+    Long OneMins = 60l * 3l * 1000l;
     long startTimestamp = System.currentTimeMillis();
 
     Prediction prediction = contract.create_prediction(BigInteger.valueOf(startTimestamp),
@@ -73,19 +76,17 @@ public class PredictionCardsUseCasesTest extends BaseTest {
     PredictionCards renter2Contract =
         new PredictionCards(getConfigForKeypair(renter2), getPredictionCardsContractId());
 
+    // fund renters
     renter1Contract.deposit_to_nft(prediction.getNft_higher_id(),
         unitConversionService18Decimals.toSmallestUnit(BigDecimal.valueOf(5)));
     log.info("Renter 1 balance: {}",
         aeternityService.accounts.blockingGetAccount(renter1.getAddress()).getBalance());
-    // renter1Contract.withdraw_from_nft(prediction.getNft_higher_id(), Optional.of(oneAE));
-    // log.info("Renter 1 balance: {}",
-    // aeternityService.accounts.blockingGetAccount(renter1.getAddress()).getBalance());
-
     renter2Contract.deposit_to_nft(prediction.getNft_higher_id(),
         unitConversionService18Decimals.toSmallestUnit(BigDecimal.valueOf(3)));
     log.info("Renter 2 balance: {}",
         aeternityService.accounts.blockingGetAccount(renter2.getAddress()).getBalance());
 
+    // renter higher: r1, r2 ,r1
     log.info("Renting higher");
     renter1Contract.rent_nft(prediction.getNft_higher_id(), oneAEPerDayinAettosPerMilliSecond);
     renter2Contract.rent_nft(prediction.getNft_higher_id(),
@@ -94,6 +95,7 @@ public class PredictionCardsUseCasesTest extends BaseTest {
         oneAEPerDayinAettosPerMilliSecond.add(BigInteger.valueOf(100000)));
     log.info("state {}", contract.get_state());
 
+    // rent lower: r1, r2
     log.info("Renting lower");
     renter1Contract.deposit_to_nft(prediction.getNft_lower_equal_id(),
         unitConversionService18Decimals.toSmallestUnit(BigDecimal.valueOf(30)));
@@ -106,12 +108,9 @@ public class PredictionCardsUseCasesTest extends BaseTest {
     renter1Contract.rent_nft(prediction.getNft_lower_equal_id(), oneAEPerDayinAettosPerMilliSecond);
     renter2Contract.rent_nft(prediction.getNft_lower_equal_id(),
         oneAEPerDayinAettosPerMilliSecond.add(BigInteger.valueOf(1)));
-    log.info("state after renting {}", contract.get_state());
+    log.info("state after renting all{}", contract.get_state());
 
-    // log.info("Withdraw for not renting Renter 1 for lower nft_id",
-    // renter1Contract.withdraw_from_nft(prediction.getNft_lower_equal_id(), Optional.empty()));
-    // log.info("state after renting {}", contract.get_state());
-
+    // wait for prediction end
     Prediction_state state = contract.get_prediction_state(prediction.getId());
 
     while (state.getPrediction_state().toString().equals("ACTIVE")) {
@@ -127,32 +126,40 @@ public class PredictionCardsUseCasesTest extends BaseTest {
       }
     }
 
+    // resolve prediction
     log.info("Prediction ended with state: {}", contract.get_prediction_state(prediction.getId()));
     log.info("Calling oracle {}", contract.ask_for_winning_option(prediction.getId(), oneAE));
     log.info("Oracle answered? {}", contract.check_oracle_has_responded(prediction.getId()));
     log.info("Simulating answer");
     this.simulateOracleResponse("higher");
     log.info("Oracle answered? {}", contract.check_oracle_has_responded(prediction.getId()));
-
+    log.info("State before processing response: {}", contract.get_state());
     log.info("Processing oracle response {}", contract.process_oracle_response(prediction.getId()));
-    log.info("State: {}", contract.get_state());
-    log.info("Renter 1 balance: {}",
+    log.info("State after processing response: {}", contract.get_state());
+
+    // claim
+    log.info("Renter 1 balance before claim higher: {}",
         aeternityService.accounts.blockingGetAccount(renter1.getAddress()).getBalance());
     log.info(renter1Contract.claim(prediction.getId()));
-    log.info("Renter 1 balance: {}",
+    log.info("Renter 1 {} balance after claim higher: {}", renter1.getAddress(),
         aeternityService.accounts.blockingGetAccount(renter1.getAddress()).getBalance());
+    log.info("State after renter 1 claimed win {}", contract.get_state());
 
-    log.info("Renter 2 balance: {}",
+    log.info("Renter 2 balance before claim higher: {}",
         aeternityService.accounts.blockingGetAccount(renter2.getAddress()).getBalance());
     log.info(renter2Contract.claim(prediction.getId()));
-    log.info("Renter 2 balance: {}",
+    log.info("Renter 2 {} balance after claim higher: {}", renter2.getAddress(),
         aeternityService.accounts.blockingGetAccount(renter2.getAddress()).getBalance());
-    log.info("State: {}", contract.get_state());
+
+    // r2 claim again
+    log.info("State after renter 2 claimed win {}", contract.get_state());
     log.info("Claiming again");
     log.info(renter2Contract.claim(prediction.getId()));
+    log.info("State after renter 2 claimed 2 times {}", contract.get_state());
   }
 
   @Test
+  @Disabled
   public void createPrediction() {
     renter1 = keyPairService.generateKeyPair();
     BigInteger oneAE = unitConversionService18Decimals.toSmallestUnit("1");
