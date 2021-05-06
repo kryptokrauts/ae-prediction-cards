@@ -90,11 +90,11 @@ export const NewEventForm: React.FC<Props> = ({ onClose }) => {
         <Box row justify="space-between">
           <StyledLabel>
             <BasicText>Start Date</BasicText>
-            <StyledInput type="date" name="start_timestamp" value={state.start_timestamp} min={format(today)} max={state.endDate && format(new Date(state.endDate))} onChange={evt => dispatch({ target: evt.target.name, value: evt.target.value })} />
+            <StyledInput type="datetime-local" name="start_timestamp" value={state.start_timestamp} min={format(today)} max={state.endDate && format(new Date(state.endDate))} onChange={evt => dispatch({ target: evt.target.name, value: evt.target.value })} />
           </StyledLabel>
           <StyledLabel>
             <BasicText>End Date</BasicText>
-            <StyledInput type="date" name="end_timestamp" value={state.end_timestamp} min={format(new Date(state.startDate))} onChange={evt => dispatch({ target: evt.target.name, value: evt.target.value })} />
+            <StyledInput type="datetime-local" name="end_timestamp" value={state.end_timestamp} min={format(new Date(state.startDate))} onChange={evt => dispatch({ target: evt.target.name, value: evt.target.value })} />
           </StyledLabel>
         </Box>
         <Box row margin={['medium', 0, 0, 0]} justify="space-between">
