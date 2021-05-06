@@ -518,7 +518,11 @@ payable contract PredictionCards =
         let last_renter_balance = state.renter_nft_balance[last_renter][nft_id]
         let last_rent_timestamp = prediction.last_rent_timestamp[nft_id]
         let last_rent_aettos = prediction.nft_last_rent_aettos_per_millisecond[nft_id]
-        let rent_period = Chain.timestamp - last_rent_timestamp        // difference in milliseconds between now and last rent
+        let max_end_timestamp = 
+          switch(Chain.timestamp > prediction.end_timestamp)
+            true => prediction.end_timestamp
+            false => Chain.timestamp
+        let rent_period = max_end_timestamp - last_rent_timestamp        // difference in milliseconds between now and last rent
         let max_hodl_time = last_renter_balance / last_rent_aettos     // max duration in milliseconds which current renter can hodl the rent        
         switch((max_hodl_time - rent_period) >= 0)
           true => rent_period * last_rent_aettos
