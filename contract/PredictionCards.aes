@@ -18,8 +18,7 @@ payable contract PredictionCards =
     , nft_hodl_time: map(int, map(address, int)) // owner, hodl duration per owner (needed to calculate payout)
     , collected_nft_balance: map(int, int) // map of nft and their collected rent amount
     , oracle_query: option(oracle_query(string, string)) // the query data used to determine the winner
-    , winning_nft_id: option(int) // the nft_id of the correct option
-    , renter_claimed: map(address, bool)} // tracks if a renter has claimed
+    , winning_nft_id: option(int) }// the nft_id of the correct option
 
   //record oracle_query_data =
   //  { query: oracle_query(string, string)
@@ -111,12 +110,16 @@ payable contract PredictionCards =
                 true => rent_period * last_rent_aettos
                 false => last_renter_balance
               // compute amount of aettos for complete hodl time
-            put(state{renter_nft_balance = state.renter_nft_balance{[last_renter]={[nft_id]=last_renter_balance-rent_amount_to_collect}}})
+            put(state{renter_nft_balance = state.renter_nft_balance{[last_renter]=state.renter_nft_balance[last_renter]{[nft_id]=last_renter_balance-rent_amount_to_collect}}})
             let last_renter_collected_balance = Map.lookup_default(nft_id, prediction.collected_nft_balance,0)
             let last_renter_hodl_time = Map.lookup_default(last_renter, Map.lookup_default(nft_id,prediction.nft_hodl_time,{}),0)
+            let updated_hodl_time =
+              switch(Map.lookup(nft_id, prediction.nft_hodl_time))
+                None => {[last_renter] = last_renter_hodl_time+rent_period}
+                Some(current_nft_hodl_time) => current_nft_hodl_time{[last_renter] = last_renter_hodl_time+rent_period}
             prediction{
               collected_nft_balance = prediction.collected_nft_balance{[nft_id] = last_renter_collected_balance + rent_amount_to_collect},
-              nft_hodl_time = prediction.nft_hodl_time{[nft_id]={[last_renter] = last_renter_hodl_time+rent_period}}}
+              nft_hodl_time = prediction.nft_hodl_time{[nft_id]=updated_hodl_time }}
           None => prediction
       let updated_prediction_final = updated_prediction_tmp{
         last_rent_timestamp = updated_prediction_tmp.last_rent_timestamp{[nft_id]=Chain.timestamp}, 
@@ -150,8 +153,7 @@ payable contract PredictionCards =
       nft_hodl_time = {},
       collected_nft_balance = {},
       oracle_query = None,
-      winning_nft_id = None,
-      renter_claimed = {} }
+      winning_nft_id = None }
     put(state{nft_meta = state.nft_meta{[nft_lower_equal_id]=ipfs_hash_lower_equal, [nft_higher_id]=ipfs_hash_higher}})
     put(state{next_prediction_id = state.next_prediction_id+1})
     put(state{next_nft_id = state.next_nft_id+2})
@@ -201,7 +203,7 @@ payable contract PredictionCards =
         Some(amount) => 
           require(amount =< complete_balance,"ERROR_CANNOT_WITHDRAW_MORE_THAN_COMPLETE_BALANCE")
           amount
-    put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]={[nft_id]=complete_balance-amount_to_withdraw}}})
+    put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]=state.renter_nft_balance[Call.caller]{[nft_id]=complete_balance-amount_to_withdraw}}})
     Chain.spend(Call.caller,amount_to_withdraw)
 
     // check if current timestamp >= end_timestamp of prediction
@@ -278,12 +280,16 @@ payable contract PredictionCards =
             false => last_renter_balance
           // compute amount of aettos for complete hodl time            
         let collected_balance = Map.lookup_default(nft_id, prediction.collected_nft_balance,0)
-        let last_renter_hodl_time = Map.lookup_default(last_renter, Map.lookup_default(nft_id,prediction.nft_hodl_time,{}),0)  
+        let last_renter_hodl_time = Map.lookup_default(last_renter, Map.lookup_default(nft_id,prediction.nft_hodl_time,{}),0) 
+        let updated_hodl_time =
+              switch(Map.lookup(nft_id, prediction.nft_hodl_time))
+                None => {[last_renter] = last_renter_hodl_time+rent_period}
+                Some(current_nft_hodl_time) => current_nft_hodl_time{[last_renter] = last_renter_hodl_time+rent_period} 
         let updated_prediction = prediction{
           collected_nft_balance = prediction.collected_nft_balance{[nft_id] = collected_balance + rent_amount_to_collect },
-          nft_hodl_time = prediction.nft_hodl_time{[nft_id]={[last_renter] = last_renter_hodl_time+rent_period}},
+          nft_hodl_time = prediction.nft_hodl_time{[nft_id]=updated_hodl_time },
           last_rent_timestamp = prediction.last_rent_timestamp{[nft_id]=prediction.end_timestamp}} 
-        put(state{renter_nft_balance = state.renter_nft_balance{[last_renter]={[nft_id]=last_renter_balance-rent_amount_to_collect}}})
+        put(state{renter_nft_balance = state.renter_nft_balance{[last_renter]=state.renter_nft_balance[last_renter]{[nft_id]=last_renter_balance-rent_amount_to_collect}}})
         updated_prediction
 
   // claim returns renters_balance as well as it's part of the winning nft
@@ -298,7 +304,7 @@ payable contract PredictionCards =
         let claim_amount = (prediction.collected_nft_balance[prediction.nft_lower_equal_id] + prediction.collected_nft_balance[prediction.nft_higher_id]) 
           / prediction.nft_hodl_time[winning_nft_id][Call.caller]
         let current_renter_balance = state.renter_nft_balance[Call.caller][winning_nft_id]
-        put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]={[winning_nft_id]=current_renter_balance + claim_amount}}})
+        put(state{renter_nft_balance = state.renter_nft_balance{[Call.caller]=state.renter_nft_balance[Call.caller]{[winning_nft_id]=current_renter_balance + claim_amount}}})
         withdraw_from_nft(winning_nft_id, None)
           
 

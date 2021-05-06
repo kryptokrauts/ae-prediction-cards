@@ -85,7 +85,7 @@
 						<directories>
 							<directory>${project.basedir}/../contract</directory>
 						</directories>
-						<compilerBaseUrl>http://compiler.aelocal:3080</compilerBaseUrl>
+						<compilerBaseUrl>http://localhost:3080</compilerBaseUrl>
 					</codegen>
 				</configuration>
 				<executions>
