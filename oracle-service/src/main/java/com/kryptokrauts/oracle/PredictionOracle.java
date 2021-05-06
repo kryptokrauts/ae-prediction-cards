@@ -57,6 +57,7 @@ public class PredictionOracle {
         Long predictionEndDatePrice =
             processCoingeckoRequest(ticker, predictionDate, dayBeforePredictiondate);
         String outcome = determinePredictionOutcome(predictedPrice, predictionEndDatePrice);
+        log.info("Calculated outcome: {}", outcome);
         if (outcome != null) {
           chainInteraction.respondToQuery(oracleQueryResult, outcome);
         }
@@ -115,7 +116,7 @@ public class PredictionOracle {
   private String determinePredictionOutcome(String predictedPrice, Long predictionEndDatePrice) {
     try {
       long predictedPriceUsd = Long.parseLong(predictedPrice);
-      if (predictedPriceUsd > predictionEndDatePrice) {
+      if (predictedPriceUsd < predictionEndDatePrice) {
         return OUTCOME_HIGHER;
       }
       return OUTCOME_LOWER_OR_EQUAL;
