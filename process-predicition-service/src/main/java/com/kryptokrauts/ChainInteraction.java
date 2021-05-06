@@ -106,10 +106,6 @@ public class ChainInteraction {
     log.info("Chain connection initialization successful");
   }
 
-  public void getState() {
-    log.info("state: {}", contract.get_state());
-  }
-
   public void askOracle() {
     // contract pointer might have changed
     String contractPointer = getContractPointer();
@@ -118,6 +114,7 @@ public class ChainInteraction {
           contractPointer);
       // cc https://github.com/kryptokrauts/contraect-maven-plugin/issues/52
       contract = new PredictionCards(aeternityServiceConfig, contractPointer);
+      contractAddress = contractPointer;
       // clear prediction ids as we are using a new contract
       predictionIdQueryMap.clear();
     }
