@@ -1,5 +1,5 @@
 <p align="center">
-    <img alt="predictioncards" src="./images/logo.svg" />
+    <img alt="predictioncards" src="./images/logo.png" />
 </p>
 <h1 align="center">
   Prediction Cards
