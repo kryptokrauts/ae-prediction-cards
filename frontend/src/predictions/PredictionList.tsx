@@ -6,6 +6,7 @@ import { Prediction } from "./types";
 interface Props {
   predictions: Array<Prediction>;
   isComplete: boolean;
+  winnerNFT?: number;
   onPredictionClick: (prediction: Prediction) => void;
 }
 
@@ -21,10 +22,10 @@ const StyledPredictionList = styled.div`
   }
 `;
 
-export const PredictionList: React.FC<Props> = ({ predictions, onPredictionClick, isComplete }) => (
+export const PredictionList: React.FC<Props> = ({ predictions, onPredictionClick, isComplete, winnerNFT }) => (
   <StyledPredictionList>
     {predictions.map(prediction => (
-      <PredictionCard key={prediction.id} prediction={prediction} onClick={() => onPredictionClick(prediction)} isCompleted={isComplete} />
+      <PredictionCard key={prediction.id} prediction={prediction} onClick={() => onPredictionClick(prediction)} isCompleted={isComplete} isWinner={winnerNFT === prediction.id} />
     ))}
   </StyledPredictionList>
 )

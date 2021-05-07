@@ -16,13 +16,14 @@ const NFTImage = styled.img`
 interface Props {
   prediction?: Prediction;
   isCompleted: boolean;
+  isWinner?: boolean;
   onClick?: () => void;
 }
 
-export const PredictionCard: React.FC<Props> = ({ prediction, onClick, isCompleted }) => (
+export const PredictionCard: React.FC<Props> = ({ prediction, onClick, isCompleted, isWinner }) => (
   <Card vertical onClick={onClick}>
     <Box center>
-      <SmallHeading>{prediction?.name}</SmallHeading>
+      <SmallHeading>{prediction?.name} {isWinner && <>&#9818;</>}</SmallHeading>
     </Box>
     <Box center margin={['medium', 0, 0, 0]}>
       <NFTImage src={`https://ipfs.io/ipfs/${prediction?.imageHash}`} alt="NFT image" />

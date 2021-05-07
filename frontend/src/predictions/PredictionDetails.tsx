@@ -146,7 +146,7 @@ export const PredictionDetails: React.FC = () => {
                   <Spinner size="small" />
                 </Box>
               }
-              {!isProcessing && status !== 'CREATED' && prediction?.owner === account && currentDeposit > 0 && !hasRented && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>withdraw</Button>}
+              {!isProcessing && status !== 'CREATED' && prediction?.owner !== account && currentDeposit > 0 && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>withdraw</Button>}
               {!isProcessing && status === 'ORACLE_PROCESSED' &&
                 <>
                   {account ? (

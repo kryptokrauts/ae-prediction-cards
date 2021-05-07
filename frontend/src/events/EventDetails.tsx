@@ -73,7 +73,7 @@ export const EventDetails = () => {
       ) : (
         <>
           <EventInfo margin={[0, 0, "xlarge", 0]} event={event!} />
-          <PredictionList predictions={predictions} onPredictionClick={(prediction) => history.push(`${eventId}/${prediction.id}`)} isComplete={status === 'ORACLE_PROCESSED'} />
+          <PredictionList predictions={predictions} onPredictionClick={(prediction) => history.push(`${eventId}/${prediction.id}`)} isComplete={status === 'ORACLE_PROCESSED'} winnerNFT={event?.winning_nft_id} />
         </>
       )}
     </Box>
