@@ -100,6 +100,8 @@ export const PredictionDetails: React.FC<Props> = () => {
       } else {
         await predictionApi.withdraw(predictionId);
       }
+      const newDeposit = await predictionApi.getDeposit(predictionId, account);
+      setDeposit(newDeposit);
     } catch (err) {
       setErrorMsg('Failed. Something went wrong.');
     }
@@ -108,7 +110,7 @@ export const PredictionDetails: React.FC<Props> = () => {
 
   const availableBalance = new BigNumber(toAe(currentDeposit)).toFixed(2);
 
-  const hasRented = account && event?.nft_hodl_time && event?.nft_hodl_time[predictionId] && event?.nft_hodl_time[predictionId][1].includes(account);
+  const hasRented = account && event?.nft_hodl_time && event?.nft_hodl_time[predictionId] && event?.nft_hodl_time[predictionId].includes(account);
 
   return (
     <Box>
