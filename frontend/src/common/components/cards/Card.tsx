@@ -19,6 +19,8 @@ const StyledCard = styled.div<Props>`
   min-height:  ${props => props.vertical ? 300 : 200}px;
 
   ${glassHoverMixin}
+
+  ${props => props.onClick && `cursor: pointer;`}
 `;
 
 const StyledCardFooter = styled.div`

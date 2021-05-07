@@ -12,9 +12,10 @@ export const LargeHeading = styled.h1<{ light?: boolean }>`
   ${textColorMixing}
 `;
 
-export const MidHeading = styled.h2<{ light?: boolean }>`
+export const MidHeading = styled.h2<{ light?: boolean, onClick?: () => void }>`
   ${headingStyleMixin}
   ${textColorMixing}
+  ${props => props.onClick && `cursor: pointer;`}
 `;
 
 export const SmallHeading = styled.h3<{ light?: boolean }>`

@@ -11,6 +11,7 @@ import { BasicText } from "../common/components/text/Text"
 
 interface Props {
   onClose: () => void;
+  onEventCreated: () => void;
 }
 
 const format = (value: Date) => {
@@ -18,13 +19,25 @@ const format = (value: Date) => {
 }
 
 const newEventFormReducer = (state, action) => {
+  console.log('state', state);
   return {
     ...state,
     [action.target]: action.value
   }
 }
 
-export const NewEventForm: React.FC<Props> = ({ onClose }) => {
+const canCreate = (state) => {
+  return state.asset &&
+    state.img_higher &&
+    state.img_lower &&
+    state.target_price &&
+    state.start_timestamp &&
+    state.end_timestamp &&
+    state.end_timestamp > Date.now() &&
+    state.end_timestamp > state.start_timestamp
+}
+
+export const NewEventForm: React.FC<Props> = ({ onClose, onEventCreated }) => {
   const [isLoading, setIsLoading] = useState(false);
   const today = new Date();
   const predictionApi = usePredictionCardsApi();
@@ -32,16 +45,16 @@ export const NewEventForm: React.FC<Props> = ({ onClose }) => {
     asset: "AE",
     img_higher: '',
     img_lower: '',
-    targetPrice: 0,
+    target_price: 0,
     start_timestamp: format(today),
     end_timestamp: "",
-    max_increase_rent_amount_aettos: 1,
   });
 
   const createPredictionEvent = async (state) => {
     setIsLoading(true);
     await predictionApi.createPrediction(state, state.img_higher, state.img_lower);
     setIsLoading(false);
+    onEventCreated();
   }
 
   const available_assets = ["AE", "BTC", "MTL", "XPR", "DOGE"];
@@ -122,7 +135,7 @@ export const NewEventForm: React.FC<Props> = ({ onClose }) => {
         {isLoading ? <Spinner size="small" /> : (
           <>
             <Button onClick={onClose}>Close</Button>
-            <Button primary onClick={() => createPredictionEvent(state)}>Create</Button>
+            <Button primary onClick={() => createPredictionEvent(state)} disabled={canCreate(state)}>Create</Button>
           </>
         )}
       </ModalFooter>

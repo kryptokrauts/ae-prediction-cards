@@ -104,11 +104,11 @@ export const PredictionDetails: React.FC<Props> = () => {
               {status === 'ACTIVE' &&
                 <>
                   <StyledLabel>
-                    <BasicText center>rent price (AE/day)</BasicText>
+                    <BasicText center light>rent price (AE/day)</BasicText>
                     <StyledInput type="number" autoFocus value={rent.toString()} onChange={evt => setRent(parseFloat(evt.target.value))} />
                   </StyledLabel>
                   <StyledLabel>
-                    <BasicText center>deposit (AE)</BasicText>
+                    <BasicText center light>deposit (AE)</BasicText>
                     <StyledInput type="number" autoFocus value={deposit.toString()} onChange={evt => setDeposit(parseFloat(evt.target.value))} />
                   </StyledLabel>
                   <Caption marginTop="large" light>With the current price and deposit you can rent the NFT for <strong>{Math.floor(deposit / rent) || 0} days</strong></Caption>
@@ -122,17 +122,14 @@ export const PredictionDetails: React.FC<Props> = () => {
                   )}
                 </>
               }
+              {status !== 'CREATED' && prediction?.owner !== account && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>withdraw</Button>}
               {status === 'ORACLE_PROCESSED' &&
                 <>
                   {account ? (isProcessing ?
                     <Box center margin={['large', 0, 0, 0]}>
                       <Spinner size="small" />
                     </Box> :
-                    (isWinnerNFT ?
-                      <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>claim</Button>
-                      :
-                      <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>withdraw</Button>
-                    )
+                    (isWinnerNFT && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>claim</Button>)
                   ) : (
                     <BasicText light marginTop="large" center>connect your wallet to withdraw/claim</BasicText>
                   )}
