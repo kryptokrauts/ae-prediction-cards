@@ -49,11 +49,11 @@ export const NewEventForm: React.FC<Props> = ({ onClose, onEventCreated }) => {
     setIsLoading(true);
     try {
       await predictionApi.createPrediction(state, state.img_higher, state.img_lower);
+      onEventCreated();
     } catch (err) {
       setErrorMsg("Creation failed.");
     }
     setIsLoading(false);
-    onEventCreated();
   }
 
   const available_assets = ["AE", "BTC", "MTL", "XPR", "DOGE"];

@@ -70,21 +70,27 @@ export const PredictionDetails: React.FC = () => {
 
   const triggerRent = async () => {
     setIsProcessing(true);
-    if (deposit > 0) {
-      await predictionApi.deposit(predictionId, toAettos(deposit));
-    }
+    try {
+      if (deposit > 0) {
+        await predictionApi.deposit(predictionId, toAettos(deposit));
+      }
+      await predictionApi.rentNFT(predictionId, toAettosPerMillisecond(rent));
+      const [, predictionEvent] = await predictionApi.getPrediction(eventId);
+      const renter = await predictionApi.getNFTRenter(predictionId);
+      const newDeposit = await predictionApi.getDeposit(predictionId, account);
+      setCurrentDeposit(newDeposit);
+      setEvent(predictionEvent);
+      setPrediction(curr => ({
+        ...curr,
+        owner: renter,
+        rent: getRentById(predictionEvent, predictionId)
+      }));
 
-    await predictionApi.rentNFT(predictionId, toAettosPerMillisecond(rent));
-    const [, predictionEvent] = await predictionApi.getPrediction(eventId);
-    const renter = await predictionApi.getNFTRenter(predictionId);
-    const newDeposit = await predictionApi.getDeposit(predictionId, account);
-    setDeposit(newDeposit);
-    setEvent(predictionEvent);
-    setPrediction(curr => ({
-      ...curr,
-      owner: renter,
-      rent: getRentById(predictionEvent, predictionId)
-    }))
+      setDeposit(0);
+      setRent(0);
+    } catch (err) {
+      setErrorMsg('Failed. Something went wrong.');
+    }
     setIsProcessing(false);
   }
 
@@ -132,7 +138,7 @@ export const PredictionDetails: React.FC = () => {
                     <BasicText center light>deposit (AE) (optional)</BasicText>
                     <StyledInput type="number" autoFocus value={deposit.toString()} onChange={evt => setDeposit(parseFloat(evt.target.value))} />
                   </StyledLabel>
-                  {currentDeposit > 0 && <Caption marginTop="large" light>Available balance for Prediction NFT <strong>{new BigNumber(toAe(currentDeposit)).toFixed(2)} AE</strong></Caption>}
+                  {currentDeposit > 0 && <Caption marginTop="large" light>Available balance for Prediction NFT <strong>{availableBalance} AE</strong></Caption>}
                   {rent > 0 && <Caption marginTop="large" light>With the current price and deposit you can rent the NFT for <strong>{Math.floor((deposit + parseFloat(availableBalance)) / rent) || 0} days</strong></Caption>}
                   {!isProcessing && (account ? (
                     <Button margin={['large', 0, 0, 0]} primary onClick={() => triggerRent()} disabled={!rent}>rent the card</Button>
