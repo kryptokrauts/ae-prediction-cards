@@ -51,6 +51,7 @@ export const NewEventForm: React.FC<Props> = ({ onClose, onEventCreated }) => {
       await predictionApi.createPrediction(state, state.img_higher, state.img_lower);
       onEventCreated();
     } catch (err) {
+      console.error(err);
       setErrorMsg("Creation failed.");
     }
     setIsLoading(false);

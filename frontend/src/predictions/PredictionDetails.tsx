@@ -89,6 +89,7 @@ export const PredictionDetails: React.FC = () => {
       setDeposit(0);
       setRent(0);
     } catch (err) {
+      console.error(err);
       setErrorMsg('Failed. Something went wrong.');
     }
     setIsProcessing(false);
@@ -105,6 +106,7 @@ export const PredictionDetails: React.FC = () => {
       const newDeposit = await predictionApi.getDeposit(predictionId, account);
       setCurrentDeposit(newDeposit);
     } catch (err) {
+      console.error(err);
       setErrorMsg('Failed. Something went wrong.');
     }
     setIsProcessing(false);
