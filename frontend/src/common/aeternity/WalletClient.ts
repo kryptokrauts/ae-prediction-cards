@@ -20,6 +20,7 @@ export class WalletClient {
     await this.init();
     await this.scanForWallets() // Start looking for new wallets
     await this.client.subscribeAddress('subscribe', 'connected');
+    localStorage.setItem('autoconnectwallet', 'true');
     this.dispatcher(walletConnected(await this.getAccountInfo()))
   }
 

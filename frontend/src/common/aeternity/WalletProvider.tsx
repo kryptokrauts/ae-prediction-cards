@@ -14,8 +14,12 @@ export const useWallet = () => {
 
 export const WalletProvider: React.FC = ({ children }) => {
   const dispatcher = useDispatch();
+  const wallet = new WalletClient(dispatcher);
+  if (localStorage.getItem('autoconnectwallet') === 'true') {
+    wallet.connect();
+  }
   return (
-    <WalletContext.Provider value={new WalletClient(dispatcher)}>
+    <WalletContext.Provider value={wallet}>
       {children}
     </WalletContext.Provider>
   )
