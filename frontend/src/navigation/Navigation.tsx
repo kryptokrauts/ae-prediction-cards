@@ -42,7 +42,7 @@ export const Navigation = () => {
   return (
     <StyledWrapper>
       <Logo />
-      <Box >
+      <Box margin={[0, 0, 0, 'medium']}>
         <MidHeading onClick={() => history.push('/')} >PredictionCards</MidHeading>
       </Box>
       <NavActions>
