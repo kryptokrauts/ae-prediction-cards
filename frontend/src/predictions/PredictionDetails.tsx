@@ -1,7 +1,7 @@
 import { toAe, toAettos } from '@aeternity/aepp-sdk/es/utils/amount-formatter';
 import BigNumber from 'bignumber.js';
 import React, { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useSelector } from 'react-redux';
 import { useParams } from "react-router";
 import { usePredictionCardsApi } from "../common/api/PredictionCardsApiProvider";
 import { Box } from "../common/components/box/Box";
@@ -13,18 +13,14 @@ import { toAettosPerMillisecond } from '../common/utils/transformer';
 import { EventInfo } from "../events/components/EventInfo";
 import { PredictionEvent } from "../events/types";
 import { getRentById } from '../events/utils';
-import { AppState } from "../state";
+import { AppState } from '../state';
 import { PredictionCard } from './PredictionCards';
 import { Prediction } from "./types";
 
 
-interface Props {
-
-}
-
 const getPredictionLabel = (predictionEvent, id) => predictionEvent.nft_higher_id === id ? 'HIGHER' : 'LOWER';
 
-export const PredictionDetails: React.FC<Props> = () => {
+export const PredictionDetails: React.FC = () => {
   const params = useParams<{ eventId: string, predictionId: string }>();
   const eventId = parseInt(params.eventId);
   const predictionId = parseInt(params.predictionId);
@@ -110,7 +106,9 @@ export const PredictionDetails: React.FC<Props> = () => {
 
   const availableBalance = new BigNumber(toAe(currentDeposit)).toFixed(2);
 
-  const hasRented = account && event?.nft_hodl_time && event?.nft_hodl_time[predictionId] && event?.nft_hodl_time[predictionId].includes(account);
+  const hodlTimes = event?.nft_hodl_time.find(([nftId]) => nftId === predictionId);
+  const hodlers = hodlTimes && hodlTimes[1]?.map(([acc]) => acc);
+  const hasRented = account && hodlers?.includes(account);
 
   return (
     <Box>

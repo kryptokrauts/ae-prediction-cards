@@ -11,5 +11,5 @@ export interface PredictionEvent {
   collected_nft_balance: Array<[number, number]>;
   pot_size: number;
   winning_nft_id: number;
-  nft_hodl_time: Array<[number, Array<string>]>
+  nft_hodl_time: any;
 }
