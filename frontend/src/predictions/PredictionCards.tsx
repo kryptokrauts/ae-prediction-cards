@@ -23,14 +23,14 @@ export const PredictionCard: React.FC<Props> = ({ prediction, onClick }) => (
     <Box center>
       <SmallHeading>{prediction?.name}</SmallHeading>
     </Box>
-    {prediction?.rent && prediction?.owner &&
-      <Box margin={['small', 0, 'small', 0]}>
-        <BasicText center>{prediction?.rent} AE/day</BasicText>
-      </Box>
-    }
     <Box center margin={['medium', 0, 0, 0]}>
       <NFTImage src={`https://ipfs.io/ipfs/${prediction?.imageHash}`} alt="NFT image" />
     </Box>
+    {prediction?.rent && prediction?.owner &&
+      <Box margin={['medium', 0, 0, 0]}>
+        <BasicText center>{prediction?.rent} AE/day</BasicText>
+      </Box>
+    }
     <CardFooter>
       <Box row={false}>
         <Caption>renter</Caption>

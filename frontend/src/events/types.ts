@@ -10,4 +10,5 @@ export interface PredictionEvent {
   nft_last_rent_aettos_per_millisecond: Array<[number, number]>;
   collected_nft_balance: Array<[number, number]>;
   pot_size: number;
+  winning_nft_id: number;
 }

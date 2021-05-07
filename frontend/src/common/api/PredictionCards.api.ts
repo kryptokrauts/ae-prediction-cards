@@ -18,15 +18,27 @@ export class PredictionCardsApi {
     return callResult;
   };
 
-  async deposit(id: string, amount: number): Promise<any> {
+  async deposit(id: number, amount: number): Promise<any> {
     const contractObj = await this.getInteractiveInstance();
     const callResult = await contractObj.methods.deposit_to_nft(id, { amount })
     return callResult;
   }
 
-  async rentNFT(id: string, amount?: string | 0): Promise<any> {
+  async rentNFT(id: number, amount?: string | 0): Promise<any> {
     const instance = await this.getInteractiveInstance();
     const callResult = await instance.methods.rent_nft(id, amount);
+    return callResult;
+  }
+
+  async claim(id: number) {
+    const instance = await this.getInteractiveInstance();
+    const callResult = await instance.methods.claim(id);
+    return callResult;
+  }
+
+  async withdraw(id: number) {
+    const instance = await this.getInteractiveInstance();
+    const callResult = await instance.methods.withdraw_from_nft(id, undefined);
     return callResult;
   }
 
@@ -47,7 +59,7 @@ export class PredictionCardsApi {
     return callResult.decodedResult;
   }
 
-  async getPrediction(id: string): Promise<[string, PredictionEvent]> {
+  async getPrediction(id: number): Promise<[string, PredictionEvent]> {
     const contractObj = await this.getDryRunInstance();
     const callResult = await contractObj.methods.prediction(id);
     return callResult.decodedResult;

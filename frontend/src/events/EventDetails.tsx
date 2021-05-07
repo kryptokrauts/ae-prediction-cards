@@ -3,14 +3,15 @@ import { useHistory, useParams } from "react-router";
 import { usePredictionCardsApi } from "../common/api/PredictionCardsApiProvider";
 import { Box } from "../common/components/box/Box";
 import { Spinner } from "../common/components/spinner/Spinner";
-import { toAePerDay } from "../common/utils/transformer";
 import { PredictionList } from "../predictions/PredictionList";
 import { Prediction } from "../predictions/types";
 import { EventInfo } from "./components/EventInfo";
 import { PredictionEvent } from "./types";
+import { getRentById } from "./utils";
 
 export const EventDetails = () => {
-  const { eventId } = useParams<{ eventId: string }>();
+  const params = useParams<{ eventId: string }>();
+  const eventId = parseInt(params.eventId);
   const history = useHistory();
   const predictionApi = usePredictionCardsApi();
   const [event, setEvent] = useState<PredictionEvent>();
@@ -20,11 +21,6 @@ export const EventDetails = () => {
   }, {
     name: 'LOWER'
   }]);
-
-  const getRentById = (predictionEvent, nftId) => {
-    const [, rent] = predictionEvent?.nft_last_rent_aettos_per_millisecond?.find(([nft]) => nft === nftId) || [];
-    return rent;
-  }
 
   useEffect(() => {
     (async () => {
@@ -41,13 +37,13 @@ export const EventDetails = () => {
       setPredictions(([higher, lower]) => [{
         ...higher,
         id: predictionEvent.nft_higher_id,
-        rent: toAePerDay(getRentById(predictionEvent, predictionEvent.nft_higher_id))?.toString(),
+        rent: getRentById(predictionEvent, predictionEvent.nft_higher_id),
         imageHash: higherImage,
         owner: higherRenter
       }, {
         ...lower,
         id: predictionEvent.nft_lower_equal_id,
-        rent: toAePerDay(getRentById(predictionEvent, predictionEvent.nft_lower_equal_id))?.toString()?.toString(),
+        rent: getRentById(predictionEvent, predictionEvent.nft_lower_equal_id),
         imageHash: lowerImage,
         owner: lowerRenter
       }])
