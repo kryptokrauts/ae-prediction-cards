@@ -77,6 +77,12 @@ export class PredictionCardsApi {
     return callResult.decodedResult;
   }
 
+  async getDeposit(id: number, address: string): Promise<number> {
+    const instance = await this.getDryRunInstance();
+    const callResult = await instance.methods.get_remaining_balance(id, address);
+    return callResult.decodedResult;
+  }
+
   private async init() {
     if (!this.code) {
       const response = await fetch('/PredictionCards.aes');

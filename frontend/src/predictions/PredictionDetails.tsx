@@ -1,4 +1,5 @@
-import { toAettos } from '@aeternity/aepp-sdk/es/utils/amount-formatter';
+import { toAe, toAettos } from '@aeternity/aepp-sdk/es/utils/amount-formatter';
+import BigNumber from 'bignumber.js';
 import React, { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { useParams } from "react-router";
@@ -38,12 +39,18 @@ export const PredictionDetails: React.FC<Props> = () => {
   const predictionApi = usePredictionCardsApi();
   const { account } = useSelector<AppState, any>(state => state.wallet);
   const [isWinnerNFT, setIsWinnerNFT] = useState(false);
+  const [currentDeposit, setCurrentDeposit] = useState(0);
+  const [errorMsg, setErrorMsg] = useState<string>();
 
   useEffect(() => {
     (async () => {
       const [status, predictionEvent] = await predictionApi.getPrediction(eventId);
       const renter = await predictionApi.getNFTRenter(predictionId);
       const imageHash = await predictionApi.getNFTImage(predictionId);
+      if (account) {
+        const currDeposit = await predictionApi.getDeposit(predictionId, account);
+        setCurrentDeposit(currDeposit);
+      }
       setStatus(status);
       setEvent(predictionEvent);
       setPrediction({
@@ -58,7 +65,7 @@ export const PredictionDetails: React.FC<Props> = () => {
         setIsWinnerNFT(predictionEvent.winning_nft_id === predictionId);
       }
     })();
-  }, [predictionApi, eventId, predictionId]);
+  }, [predictionApi, eventId, predictionId, account]);
 
   const triggerRent = async () => {
     setIsProcessing(true);
@@ -69,6 +76,8 @@ export const PredictionDetails: React.FC<Props> = () => {
     await predictionApi.rentNFT(predictionId, toAettosPerMillisecond(rent));
     const [, predictionEvent] = await predictionApi.getPrediction(eventId);
     const renter = await predictionApi.getNFTRenter(predictionId);
+    const newDeposit = await predictionApi.getDeposit(predictionId, account);
+    setDeposit(newDeposit);
     setEvent(predictionEvent);
     setPrediction(curr => ({
       ...curr,
@@ -80,13 +89,19 @@ export const PredictionDetails: React.FC<Props> = () => {
 
   const claimOrWithdraw = async () => {
     setIsProcessing(true);
-    if (isWinnerNFT) {
-      await predictionApi.claim(eventId);
-    } else {
-      await predictionApi.withdraw(predictionId);
+    try {
+      if (isWinnerNFT) {
+        await predictionApi.claim(eventId);
+      } else {
+        await predictionApi.withdraw(predictionId);
+      }
+    } catch (err) {
+      setErrorMsg('Failed. Something went wrong.');
     }
     setIsProcessing(false);
   }
+
+  const availableBalance = new BigNumber(toAe(currentDeposit)).toFixed(2);
 
   return (
     <Box>
@@ -100,7 +115,6 @@ export const PredictionDetails: React.FC<Props> = () => {
           <Box row center>
             <PredictionCard prediction={prediction} />
             <Box margin={[0, 0, 0, 'xlarge']} width="250px">
-
               {status === 'ACTIVE' &&
                 <>
                   <StyledLabel>
@@ -108,33 +122,34 @@ export const PredictionDetails: React.FC<Props> = () => {
                     <StyledInput type="number" autoFocus value={rent.toString()} onChange={evt => setRent(parseFloat(evt.target.value))} />
                   </StyledLabel>
                   <StyledLabel>
-                    <BasicText center light>deposit (AE)</BasicText>
+                    <BasicText center light>deposit (AE) (optional)</BasicText>
                     <StyledInput type="number" autoFocus value={deposit.toString()} onChange={evt => setDeposit(parseFloat(evt.target.value))} />
                   </StyledLabel>
-                  <Caption marginTop="large" light>With the current price and deposit you can rent the NFT for <strong>{Math.floor(deposit / rent) || 0} days</strong></Caption>
-                  {account ? (isProcessing ?
-                    <Box center margin={['large', 0, 0, 0]}>
-                      <Spinner size="small" />
-                    </Box> :
-                    <Button margin={['large', 0, 0, 0]} primary onClick={() => triggerRent()}>rent the card</Button>
+                  {currentDeposit > 0 && <Caption marginTop="large" light>Available balance for Prediction NFT <strong>{new BigNumber(toAe(currentDeposit)).toFixed(2)} AE</strong></Caption>}
+                  {rent > 0 && <Caption marginTop="large" light>With the current price and deposit you can rent the NFT for <strong>{Math.floor((deposit + parseFloat(availableBalance)) / rent) || 0} days</strong></Caption>}
+                  {!isProcessing && (account ? (
+                    <Button margin={['large', 0, 0, 0]} primary onClick={() => triggerRent()} disabled={!rent}>rent the card</Button>
                   ) : (
                     <BasicText light marginTop="large" center>connect your wallet to rent this card</BasicText>
-                  )}
+                  ))}
                 </>
               }
-              {status !== 'CREATED' && prediction?.owner !== account && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>withdraw</Button>}
-              {status === 'ORACLE_PROCESSED' &&
+              {isProcessing &&
+                <Box center margin={['large', 0, 0, 0]}>
+                  <Spinner size="small" />
+                </Box>
+              }
+              {!isProcessing && status !== 'CREATED' && prediction?.owner === account && currentDeposit > 0 && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>withdraw</Button>}
+              {!isProcessing && status === 'ORACLE_PROCESSED' &&
                 <>
-                  {account ? (isProcessing ?
-                    <Box center margin={['large', 0, 0, 0]}>
-                      <Spinner size="small" />
-                    </Box> :
+                  {account ? (
                     (isWinnerNFT && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>claim</Button>)
                   ) : (
                     <BasicText light marginTop="large" center>connect your wallet to withdraw/claim</BasicText>
                   )}
                 </>
               }
+              {errorMsg && <BasicText marginTop="large" light center>{errorMsg}</BasicText>}
             </Box>
           </Box>
         </>

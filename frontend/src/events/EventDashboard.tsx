@@ -44,7 +44,7 @@ export const EventDashboard = forwardRef((_, ref) => {
 
   useEffect(() => {
     update();
-  }, [predictionApi]);
+  }, []);
 
   const handleEventCreated = () => {
     setShowModal(false);

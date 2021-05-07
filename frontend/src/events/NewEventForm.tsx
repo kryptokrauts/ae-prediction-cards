@@ -15,11 +15,10 @@ interface Props {
 }
 
 const format = (value: Date) => {
-  return `${value.getFullYear()}-${(value.getMonth() + 1).toString().padStart(2, '0')}-${value.getDate().toString().padStart(2, '0')}`
+  return `${value.getFullYear()}-${(value.getMonth() + 1).toString().padStart(2, '0')}-${value.getDate().toString().padStart(2, '0')}T${value.getHours()}:${value.getMinutes()}`
 }
 
 const newEventFormReducer = (state, action) => {
-  console.log('state', state);
   return {
     ...state,
     [action.target]: action.value
@@ -27,14 +26,9 @@ const newEventFormReducer = (state, action) => {
 }
 
 const canCreate = (state) => {
-  return state.asset &&
-    state.img_higher &&
-    state.img_lower &&
-    state.target_price &&
-    state.start_timestamp &&
-    state.end_timestamp &&
-    state.end_timestamp > Date.now() &&
-    state.end_timestamp > state.start_timestamp
+  return state.asset && state.target_price > 0 &&
+    state.start_timestamp && state.end_timestamp && state.end_timestamp > state.start_timestamp &&
+    state.img_higher && state.img_lower;
 }
 
 export const NewEventForm: React.FC<Props> = ({ onClose, onEventCreated }) => {
@@ -49,10 +43,15 @@ export const NewEventForm: React.FC<Props> = ({ onClose, onEventCreated }) => {
     start_timestamp: format(today),
     end_timestamp: "",
   });
+  const [errorMsg, setErrorMsg] = useState<string | undefined>();
 
   const createPredictionEvent = async (state) => {
     setIsLoading(true);
-    await predictionApi.createPrediction(state, state.img_higher, state.img_lower);
+    try {
+      await predictionApi.createPrediction(state, state.img_higher, state.img_lower);
+    } catch (err) {
+      setErrorMsg("Creation failed.");
+    }
     setIsLoading(false);
     onEventCreated();
   }
@@ -107,7 +106,7 @@ export const NewEventForm: React.FC<Props> = ({ onClose, onEventCreated }) => {
           </StyledLabel>
           <StyledLabel>
             <BasicText>End Date</BasicText>
-            <StyledInput type="datetime-local" name="end_timestamp" value={state.end_timestamp} min={format(new Date(state.startDate))} onChange={evt => dispatch({ target: evt.target.name, value: evt.target.value })} />
+            <StyledInput type="datetime-local" name="end_timestamp" value={state.end_timestamp} min={format(new Date(state.startDate))} onChange={evt => evt.target && dispatch({ target: evt.target.name, value: evt.target.value })} />
           </StyledLabel>
         </Box>
         <Box row margin={['medium', 0, 0, 0]} justify="space-between">
@@ -131,11 +130,12 @@ export const NewEventForm: React.FC<Props> = ({ onClose, onEventCreated }) => {
           </Box>
         </Box>
       </Box>
+      {errorMsg && <BasicText>{errorMsg}</BasicText>}
       <ModalFooter>
         {isLoading ? <Spinner size="small" /> : (
           <>
             <Button onClick={onClose}>Close</Button>
-            <Button primary onClick={() => createPredictionEvent(state)} disabled={canCreate(state)}>Create</Button>
+            <Button primary onClick={() => createPredictionEvent(state)} disabled={!canCreate(state)}>Create</Button>
           </>
         )}
       </ModalFooter>

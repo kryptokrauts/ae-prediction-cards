@@ -22,4 +22,9 @@ export const Button = styled.button<ButtonProps>`
   cursor: pointer;
 
   ${props => props.primary && glassMixinNoShadow()}
+
+  &[disabled] {
+    opacity: 0.6;
+    cursor: default;
+  }
 `;
