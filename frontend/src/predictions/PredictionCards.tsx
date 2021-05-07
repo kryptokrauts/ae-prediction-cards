@@ -15,10 +15,11 @@ const NFTImage = styled.img`
 
 interface Props {
   prediction?: Prediction;
+  isCompleted: boolean;
   onClick?: () => void;
 }
 
-export const PredictionCard: React.FC<Props> = ({ prediction, onClick }) => (
+export const PredictionCard: React.FC<Props> = ({ prediction, onClick, isCompleted }) => (
   <Card vertical onClick={onClick}>
     <Box center>
       <SmallHeading>{prediction?.name}</SmallHeading>
@@ -33,7 +34,7 @@ export const PredictionCard: React.FC<Props> = ({ prediction, onClick }) => (
     }
     <CardFooter>
       <Box row={false}>
-        <Caption>renter</Caption>
+        <Caption>{isCompleted ? 'owner' : 'renter'}</Caption>
         <SmallText>{formatAddress(prediction?.owner) || 'None'}</SmallText>
       </Box>
     </CardFooter>

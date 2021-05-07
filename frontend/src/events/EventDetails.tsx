@@ -15,6 +15,7 @@ export const EventDetails = () => {
   const history = useHistory();
   const predictionApi = usePredictionCardsApi();
   const [event, setEvent] = useState<PredictionEvent>();
+  const [status, setStatus] = useState<string>();
   const [isLoading, setIsLoading] = useState(true);
   const [predictions, setPredictions] = useState<Array<Prediction>>([{
     name: 'HIGHER'
@@ -24,12 +25,26 @@ export const EventDetails = () => {
 
   useEffect(() => {
     (async () => {
-      const [, predictionEvent] = await predictionApi.getPrediction(eventId);
+      const [currStatus, predictionEvent] = await predictionApi.getPrediction(eventId);
+      setStatus(currStatus);
       setEvent(predictionEvent);
-      const [higherRenter, lowerRenter] = await Promise.all([
-        predictionApi.getNFTRenter(predictionEvent.nft_higher_id),
-        predictionApi.getNFTRenter(predictionEvent.nft_lower_equal_id),
-      ]);
+      let higherOwner;
+      let lowerOwner;
+      if (currStatus === 'ORACLE_PROCESSED') {
+        const res = await Promise.all([
+          predictionApi.getNFTOwner(predictionEvent.nft_higher_id),
+          predictionApi.getNFTOwner(predictionEvent.nft_lower_equal_id),
+        ]);
+        higherOwner = res[0];
+        lowerOwner = res[1];
+      } else {
+        const res = await Promise.all([
+          predictionApi.getNFTRenter(predictionEvent.nft_higher_id),
+          predictionApi.getNFTRenter(predictionEvent.nft_lower_equal_id),
+        ]);
+        higherOwner = res[0];
+        lowerOwner = res[1];
+      }
       const [higherImage, lowerImage] = await Promise.all([
         predictionApi.getNFTImage(predictionEvent.nft_higher_id),
         predictionApi.getNFTImage(predictionEvent.nft_lower_equal_id),
@@ -39,13 +54,13 @@ export const EventDetails = () => {
         id: predictionEvent.nft_higher_id,
         rent: getRentById(predictionEvent, predictionEvent.nft_higher_id),
         imageHash: higherImage,
-        owner: higherRenter
+        owner: higherOwner
       }, {
         ...lower,
         id: predictionEvent.nft_lower_equal_id,
         rent: getRentById(predictionEvent, predictionEvent.nft_lower_equal_id),
         imageHash: lowerImage,
-        owner: lowerRenter
+        owner: lowerOwner
       }])
       setIsLoading(false);
     })();
@@ -58,7 +73,7 @@ export const EventDetails = () => {
       ) : (
         <>
           <EventInfo margin={[0, 0, "xlarge", 0]} event={event!} />
-          <PredictionList predictions={predictions} onPredictionClick={(prediction) => history.push(`${eventId}/${prediction.id}`)} />
+          <PredictionList predictions={predictions} onPredictionClick={(prediction) => history.push(`${eventId}/${prediction.id}`)} isComplete={status === 'ORACLE_PROCESSED'} />
         </>
       )}
     </Box>

@@ -5,6 +5,7 @@ import { Prediction } from "./types";
 
 interface Props {
   predictions: Array<Prediction>;
+  isComplete: boolean;
   onPredictionClick: (prediction: Prediction) => void;
 }
 
@@ -20,10 +21,10 @@ const StyledPredictionList = styled.div`
   }
 `;
 
-export const PredictionList: React.FC<Props> = ({ predictions, onPredictionClick }) => (
+export const PredictionList: React.FC<Props> = ({ predictions, onPredictionClick, isComplete }) => (
   <StyledPredictionList>
     {predictions.map(prediction => (
-      <PredictionCard key={prediction.id} prediction={prediction} onClick={() => onPredictionClick(prediction)} />
+      <PredictionCard key={prediction.id} prediction={prediction} onClick={() => onPredictionClick(prediction)} isCompleted={isComplete} />
     ))}
   </StyledPredictionList>
 )

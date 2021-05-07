@@ -52,6 +52,16 @@ export class PredictionCardsApi {
     }
   }
 
+  async getNFTOwner(id: number): Promise<string | undefined> {
+    const contractObj = await this.getDryRunInstance();
+    try {
+      const callResult = await contractObj.methods.owner_of(id);
+      return callResult.decodedResult;
+    } catch (err) {
+      return undefined;
+    }
+  }
+
   async getPredictions(): Promise<Array<[string, PredictionEvent]>> {
     await this.init();
     const contractObj = await this.getDryRunInstance();

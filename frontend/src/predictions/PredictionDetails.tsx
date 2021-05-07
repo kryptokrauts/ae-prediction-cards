@@ -45,18 +45,23 @@ export const PredictionDetails: React.FC<Props> = () => {
   useEffect(() => {
     (async () => {
       const [status, predictionEvent] = await predictionApi.getPrediction(eventId);
-      const renter = await predictionApi.getNFTRenter(predictionId);
       const imageHash = await predictionApi.getNFTImage(predictionId);
       if (account) {
         const currDeposit = await predictionApi.getDeposit(predictionId, account);
         setCurrentDeposit(currDeposit);
+      }
+      let owner;
+      if (status === 'ORACLE_PROCESSED') {
+        owner = await predictionApi.getNFTOwner(predictionId);
+      } else {
+        owner = await predictionApi.getNFTRenter(predictionId);
       }
       setStatus(status);
       setEvent(predictionEvent);
       setPrediction({
         id: predictionId,
         name: getPredictionLabel(predictionEvent, predictionId),
-        owner: renter,
+        owner: owner,
         rent: getRentById(predictionEvent, predictionId),
         imageHash
       });
@@ -103,6 +108,8 @@ export const PredictionDetails: React.FC<Props> = () => {
 
   const availableBalance = new BigNumber(toAe(currentDeposit)).toFixed(2);
 
+  const hasRented = account && event?.nft_hodl_time && event?.nft_hodl_time[predictionId] && event?.nft_hodl_time[predictionId][1].includes(account);
+
   return (
     <Box>
       {isLoading ? (
@@ -113,7 +120,7 @@ export const PredictionDetails: React.FC<Props> = () => {
             <EventInfo margin={[0, 0, "xlarge", 0]} event={event!} />
           </Box>
           <Box row center>
-            <PredictionCard prediction={prediction} />
+            <PredictionCard prediction={prediction} isCompleted={status === 'ORACLE_PROCESSED'} />
             <Box margin={[0, 0, 0, 'xlarge']} width="250px">
               {status === 'ACTIVE' &&
                 <>
@@ -139,11 +146,11 @@ export const PredictionDetails: React.FC<Props> = () => {
                   <Spinner size="small" />
                 </Box>
               }
-              {!isProcessing && status !== 'CREATED' && prediction?.owner === account && currentDeposit > 0 && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>withdraw</Button>}
+              {!isProcessing && status !== 'CREATED' && prediction?.owner === account && currentDeposit > 0 && !hasRented && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>withdraw</Button>}
               {!isProcessing && status === 'ORACLE_PROCESSED' &&
                 <>
                   {account ? (
-                    (isWinnerNFT && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>claim</Button>)
+                    (isWinnerNFT && hasRented && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>claim</Button>)
                   ) : (
                     <BasicText light marginTop="large" center>connect your wallet to withdraw/claim</BasicText>
                   )}
