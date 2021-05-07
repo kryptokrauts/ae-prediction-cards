@@ -70,6 +70,7 @@ export const PredictionDetails: React.FC = () => {
 
   const triggerRent = async () => {
     setIsProcessing(true);
+    setErrorMsg('');
     try {
       if (deposit > 0) {
         await predictionApi.deposit(predictionId, toAettos(deposit));
@@ -90,13 +91,14 @@ export const PredictionDetails: React.FC = () => {
       setRent(0);
     } catch (err) {
       console.error(err);
-      setErrorMsg('Failed. Something went wrong.');
+      setErrorMsg('Failed. Something went wrong. (More Details JS Console)');
     }
     setIsProcessing(false);
   }
 
   const claimOrWithdraw = async (hasRented: boolean) => {
     setIsProcessing(true);
+    setErrorMsg('');
     try {
       if (isWinnerNFT && hasRented) {
         await predictionApi.claim(eventId);
@@ -107,7 +109,7 @@ export const PredictionDetails: React.FC = () => {
       setCurrentDeposit(newDeposit);
     } catch (err) {
       console.error(err);
-      setErrorMsg('Failed. Something went wrong.');
+      setErrorMsg('Failed. Something went wrong. (More Details JS Console)');
     }
     setIsProcessing(false);
   }

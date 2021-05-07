@@ -52,7 +52,7 @@ export const NewEventForm: React.FC<Props> = ({ onClose, onEventCreated }) => {
       onEventCreated();
     } catch (err) {
       console.error(err);
-      setErrorMsg("Creation failed.");
+      setErrorMsg("Creation failed. (More Details JS Console)");
     }
     setIsLoading(false);
   }
