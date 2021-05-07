@@ -12,6 +12,11 @@ Each outcome of a certain prediction is a unique Non Fungible Token (NFT). Inste
 
 _The original project where the idea comes from is https://realitycards.io/_
 
+# Architecture
+<p align="center">
+  <img alt="architecture" src="./images/architecture.png" />
+</p>
+
 # How we built it
 
 ## Smart Contract
