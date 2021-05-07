@@ -3,6 +3,7 @@ import { useSelector } from "react-redux";
 import { useHistory } from "react-router";
 import styled from "styled-components";
 import { useWallet } from "../common/aeternity/WalletProvider";
+import { Box } from "../common/components/box/Box";
 import { Button } from "../common/components/Button/Button";
 import { Logo } from "../common/components/logo/Logo";
 import { Spinner } from "../common/components/spinner/Spinner";
@@ -41,7 +42,9 @@ export const Navigation = () => {
   return (
     <StyledWrapper>
       <Logo />
-      <MidHeading onClick={() => history.push('/')}>PredictionCards</MidHeading>
+      <Box >
+        <MidHeading onClick={() => history.push('/')} >PredictionCards</MidHeading>
+      </Box>
       <NavActions>
         {account ? (
           <>

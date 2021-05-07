@@ -94,10 +94,10 @@ export const PredictionDetails: React.FC = () => {
     setIsProcessing(false);
   }
 
-  const claimOrWithdraw = async () => {
+  const claimOrWithdraw = async (hasRented: boolean) => {
     setIsProcessing(true);
     try {
-      if (isWinnerNFT) {
+      if (isWinnerNFT && hasRented) {
         await predictionApi.claim(eventId);
       } else {
         await predictionApi.withdraw(predictionId);
@@ -152,11 +152,11 @@ export const PredictionDetails: React.FC = () => {
                   <Spinner size="small" />
                 </Box>
               }
-              {!isProcessing && status !== 'CREATED' && prediction?.owner !== account && currentDeposit > 0 && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>withdraw</Button>}
+              {!isProcessing && status !== 'CREATED' && prediction?.owner !== account && currentDeposit > 0 && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw(hasRented)}>withdraw</Button>}
               {!isProcessing && status === 'ORACLE_PROCESSED' &&
                 <>
                   {account ? (
-                    (isWinnerNFT && hasRented && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw()}>claim</Button>)
+                    (isWinnerNFT && hasRented && <Button margin={['large', 0, 0, 0]} primary onClick={() => claimOrWithdraw(hasRented)}>claim</Button>)
                   ) : (
                     <BasicText light marginTop="large" center>connect your wallet to withdraw/claim</BasicText>
                   )}
