@@ -103,7 +103,7 @@ export const PredictionDetails: React.FC = () => {
         await predictionApi.withdraw(predictionId);
       }
       const newDeposit = await predictionApi.getDeposit(predictionId, account);
-      setDeposit(newDeposit);
+      setCurrentDeposit(newDeposit);
     } catch (err) {
       setErrorMsg('Failed. Something went wrong.');
     }
