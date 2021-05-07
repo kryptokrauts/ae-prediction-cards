@@ -305,7 +305,8 @@ payable contract PredictionCards =
     switch(prediction.winning_nft_id)
       None => abort("ERROR_INTERNAL")
       Some(winning_nft_id) =>
-        require(Map.member(Call.caller,prediction.nft_hodl_time[winning_nft_id]),"ERROR_CALLER_HAS_NO_WINNINGS_TO_CLAIM")        
+        require(Map.member(Call.caller,prediction.nft_hodl_time[winning_nft_id]),"ERROR_CALLER_HAS_NO_WINNINGS_TO_CLAIM")
+        // TODO fix logic for claim_amount
         let claim_amount = (prediction.collected_nft_balance[prediction.nft_lower_equal_id] + prediction.collected_nft_balance[prediction.nft_higher_id]) 
           / prediction.nft_hodl_time[winning_nft_id][Call.caller]
         let current_renter_balance = state.renter_nft_balance[Call.caller][winning_nft_id]
