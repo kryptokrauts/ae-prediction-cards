@@ -1,0 +1,175 @@
+@compiler >= 4.1
+
+/// @title PredictionCards by kryptokrauts.com
+/// @author Michel Meier & Marco Walz
+/// @notice allows to predict future prices of certain assets by renting the NFT of a specific outcome
+payable contract PredictionCards =
+
+  record prediction =
+    { id: int
+    , start_timestamp: int
+    , end_timestamp: int
+    , max_increase_rent_amount_aettos: int // max amount between two rents
+    , asset: string // AE, BTC, ...
+    , target_price: int // target price in USD using smallest possible unit 
+    , nft_lower_equal_id: int
+    , nft_higher_id: int
+    , last_rent_timestamp: map(int, int) // nft_id, timestamp
+    , nft_last_rent_aettos_per_millisecond: map(int, int) // nft_id, last_rent_amount per millisecond set by renter
+    , nft_hodl_time: map(int, map(address, int)) // owner, hodl duration per owner (needed to calculate payout)
+    , collected_nft_balance: map(int, int) // map of nft_id and their collected rent amount
+    , oracle_query: option(oracle_query(string, string)) // the query data used to determine the winner
+    , winning_nft_id: option(int) // the nft_id of the correct option
+    , renter_claimed: map(address, bool)} // tracks if a renter has claimed
+
+  record state =
+    { oracle: oracle(string, string)
+    , rent_interval: int // duration in milliseconds, provided AE needs to cover this interval when renting the prediction (default: 86400, 1 day)
+    , predictions: map(int, prediction) // map of all predictions
+    , nft_meta: map(int, string) // map of nft_id and their corresponding ipfs_hash - TODO => irrelevant now?!?!
+    , nft_prediction: map(int, int) // map of nft_id and their corresponding prediction
+    , nft_renter: map(int, address) // map of nft_id and their current renter (or owner after prediction is closed)
+    , renter_nft_balance: map(address, nft_balance) // map with renter and their remaining funds per nft
+    , next_prediction_id: int //next prediction id 
+    , next_nft_id: int } // next nft_id
+
+  type nft_balance = map(int, int) // nft_id - balance
+
+  datatype prediction_state =
+      CREATED |
+      ACTIVE |
+      CLOSED |
+      ORACLE_PROCESSED    // winner is determined
+
+  datatype event =
+    Mint(address, int)                    // to_address and nft_id
+    | Transfer(address, address, int)     // from_address to_address nft_id 
+
+  /// @param oracle the oracle to use for resolving predictions
+  /// @param min_rent_interval the optional min interval an outcome needs to be rent in milliseconds (default: 86400000 / 1 day)
+  /// @param relative_query_ttl the query ttl to use (configurable for local testing)
+  /// @return the initial state object
+  stateful entrypoint init : (oracle(string, string), option(int), option(int)) => state
+
+  /// @notice create a new prediction
+  /// @param start_timestamp the timestamp when the prediction starts
+  /// @param end_timestamp the timestamp when the prediction ends
+  /// @param max_increase_amount the amount (ættos) that a rent amount can be increased compared to the previous rent amount
+  /// @param asset the asset to bet on (e.g. AE, BTC, MTL, XPR, ...)
+  /// @param target_price the target price (18 decimals) to bet on
+  /// @param ipfs_hash_lower_equal the IPFS hash of the "lower_equal" outcome NFT
+  /// @param ipfs_hash_higher the IPFS hash of the "higher" outcome NFT
+  /// @return the prediction object
+  stateful entrypoint create_prediction : (int, int, int, string, int, string, string) => prediction
+
+  /// @notice deposit an amount of ættos (implicit via paypable) for a specific outcome NFT
+  /// @param nft_id the NFT id the deposit belongs to
+  payable stateful entrypoint deposit_to_nft : (int) => unit
+
+  /// @notice helper method to check if a potential renter can actually rent the outcome NFT for the given params
+  /// @param renter address of the potential renter
+  /// @param nft_id the NFT id
+  /// @param amount the amount (ættos) to pay per millisecond
+  /// @return true if it's possible to rent, otherwise false
+  entrypoint can_rent: (address, int, int) => bool
+
+  /// @notice predict a specific outcome by renting the NFT
+           // requires a prior deposit by the Caller for the specific NFT
+           // the deposit balance for the caller needs to cover at least the min_rent_interval (default: 1 day)
+  /// @param nft_id the NFT id of the outcome to predict
+  /// @param amount the amount (ættos) to pay per millisecond
+  stateful entrypoint rent_nft : (int, int) => unit
+
+  /// @notice withdraw a specific amount or the total balance from a specific NFT
+  /// @param nft_id the NFT id to withdraw from
+  /// @param amount the optional amount (ættos) to withdraw
+  stateful entrypoint withdraw_from_nft : (int, option(int)) => unit
+
+  /// @notice triggers a query to the oracle to resolve the winning NFT id later on
+           // the query_fee which is required to call the oracle must be provided by the caller
+  /// @param prediction_id the id of the prediction to resolve
+  payable stateful entrypoint ask_for_winning_option : (int) => unit
+
+  /// @notice helper function to check if the oracle has responded to the query
+  /// @param prediction_id the id of the prediction
+  /// @return true when the oracle has responded, otherwise false
+  entrypoint check_oracle_has_responded : (int) => bool
+
+  /// @notice processes the response of the oracle, determines the winner NFT id and transfers ownership of the NFTs to the address the held it the longest
+  /// @param prediction_id the id of the prediction to process the oracle response for
+  stateful entrypoint process_oracle_response : (int) => unit         
+
+  /// @notice helper method for the frontend to receive a tuple (winnings amount * deposit amount) for a certain NFT
+           // can only be called when the winning NFT has been determined
+  /// @param nft_id the id of the NFT to check the winnings and deposit from
+  /// @param renter the address of the renter
+  /// @return tuple (winnings amount * deposit amount)
+  entrypoint get_win_deposit : (int, address) => (int * int)
+
+  /// @notice allows every historical renter of the winning outcome NFT to claim their rewards
+  /// @param prediction_id the id of the prediction to claim the reward from
+  stateful entrypoint claim : (int) => unit
+
+  /// @notice transfer an NFT from one address to another
+  /// @param from_address the address of the NFT owner
+  /// @param to_address the address of the NFT recipient (new owner)
+  /// @param nft_id the NFT id to transfer
+  stateful entrypoint transfer : (address, address, int) => unit   
+
+  /// @notice helper function to get the current prediction state
+  /// @param prediction_id the id of the prediction
+  /// @return CREATED | ACTIVE | CLOSED | ORACLE_PROCESSED
+  entrypoint get_prediction_state : (int) => prediction_state
+
+  /// @notice get a prediction object and its current state
+  /// @param prediction_id the id of the prediction
+  /// @return tuple (prediction_state * prediction)
+  entrypoint prediction: (int) => (prediction_state * prediction)
+
+  /// @notice get a list of all prediction objects and their current state
+  /// @return list of tuple (prediction_state * prediction)
+  entrypoint all_predictions : () => list(prediction_state * prediction)
+
+  /// @notice get a list of all prediction objects filtered by a specific state
+  /// @return list of prediction
+  entrypoint predictions : (prediction_state) => list(prediction)
+
+  /// @notice get the current owner of the NFT
+           // as long as the winning outcome NFT hasn't been determined the owner will be the contract itself
+  /// @param the NFT id
+  /// @return the address of the owner
+  entrypoint owner_of : (int) => address
+
+  /// @notice get the current renter of the outcome NFT
+  /// @param the NFT id
+  /// @return optional address of the current renter
+  entrypoint current_renter: (int) => option(address)
+
+  /// @notice get the rent limit amounts (ættos) for the next potential rent
+  /// @param the NFT id
+  /// @return tuple (min * max)
+  entrypoint get_rent_limits : (int) => (int * int)
+
+  /// @notice get the configured rent interval (milliseconds)
+  entrypoint get_rent_interval : () => int
+
+  /// @notice get the amount (ættos) the provided address has deposited and is remaining after potential rents to the given NFT id
+  /// @param the NFT id
+  /// @param provided address (renter)
+  /// @return the deposit in ættos
+  entrypoint get_remaining_balance : (int, address) => int
+
+  /// @notice get the time left until the current rent expires (assuming it won't be outbidded)
+  /// @param the NFT id
+  /// @return the expiration duration (milliseconds)
+  entrypoint get_rent_expiration : (int) => int
+
+  /// @notice get the collected rent of all nfts of this prediction
+  /// @param the prediction id
+  /// @return the collected rent in ættos
+  entrypoint get_pot_size : (int) => int
+
+  /// @notice get the NFT meta informations (currently ipfs_hash)
+  /// @param the NFT id
+  /// @return the ipfs_hash
+  entrypoint get_nft_meta : (int) => string

@@ -1,0 +1,22 @@
+{
+  "files": {
+    "main.css": "/ae-prediction-cards/static/css/main.04024216.chunk.css",
+    "main.js": "/ae-prediction-cards/static/js/main.4ba07f82.chunk.js",
+    "main.js.map": "/ae-prediction-cards/static/js/main.4ba07f82.chunk.js.map",
+    "runtime-main.js": "/ae-prediction-cards/static/js/runtime-main.7cceea9f.js",
+    "runtime-main.js.map": "/ae-prediction-cards/static/js/runtime-main.7cceea9f.js.map",
+    "static/js/2.973578dc.chunk.js": "/ae-prediction-cards/static/js/2.973578dc.chunk.js",
+    "static/js/2.973578dc.chunk.js.map": "/ae-prediction-cards/static/js/2.973578dc.chunk.js.map",
+    "index.html": "/ae-prediction-cards/index.html",
+    "static/css/main.04024216.chunk.css.map": "/ae-prediction-cards/static/css/main.04024216.chunk.css.map",
+    "static/js/2.973578dc.chunk.js.LICENSE.txt": "/ae-prediction-cards/static/js/2.973578dc.chunk.js.LICENSE.txt",
+    "static/media/Logo.818aad84.svg": "/ae-prediction-cards/static/media/Logo.818aad84.svg",
+    "static/media/index.css": "/ae-prediction-cards/static/media/OpenSans-SemiBoldItalic.63afadba.ttf"
+  },
+  "entrypoints": [
+    "static/js/runtime-main.7cceea9f.js",
+    "static/js/2.973578dc.chunk.js",
+    "static/css/main.04024216.chunk.css",
+    "static/js/main.4ba07f82.chunk.js"
+  ]
+}
